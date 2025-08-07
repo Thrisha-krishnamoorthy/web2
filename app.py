@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import pickle
 import json
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, session, send_from_directory, jsonify, url_for, flash
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
@@ -57,18 +58,30 @@ def product_catalog():
     # Format products for the template
     formatted_products = []
     for product in products:
-        # Get the first image from image_options if available
-        image_options = json.loads(product.image_options) if product.image_options else []
-        image_url = image_options[0] if image_options else '/static/default.jpg'
+        # Get one selected image for this product
+        selected_image = SelectedImage.query.filter_by(
+            seller_id=session['seller_id'],
+            product_id=product.id
+        ).first()
+        
+        # Get the image URL if a selected image exists
+        image_url = '/static/default.jpg'  # Default image
+        if selected_image:
+            image = ExtractedImage.query.get(selected_image.image_id)
+            if image:
+                image_url = url_for('serve_extracted_image', image_id=image.id)
         
         formatted_products.append({
             'id': product.id,
-            'model': product.file_name or 'N/A',
+            'name': product.file_name or 'N/A',
             'brand': product.brand or 'N/A',
-            'qty': product.quantity or 0,
-            'image': image_url,
-            'part_number': product.part_number or '',
-            'description': product.description or ''
+            'quantity': product.quantity or 0,
+            'image_url': image_url,
+            'part_number': product.part_number or 'N/A',
+            'description': product.description or 'No description available',
+            'price': product.original_price or 0.0,
+            'category': product.category or 'Uncategorized',
+            'condition': product.physical_condition or 'Not specified'
         })
     
     return render_template('product_ui.html', products=formatted_products, logged_in=session.get('logged_in', True))
@@ -168,6 +181,12 @@ def upload_pdf():
         # Save PDFs and build mapping
         pdf_paths = {}
         
+        # Store PDF names in session to track current uploads
+        if 'current_uploaded_pdfs' not in session:
+            session['current_uploaded_pdfs'] = []
+            
+        current_uploaded_pdfs = session['current_uploaded_pdfs']
+        
         # Create a response object to track success
         response_data = {
             'success': True,
@@ -179,6 +198,15 @@ def upload_pdf():
             # Get secure filename and restore spaces
             filename = secure_filename(pdf_file.filename)
             filename = filename.replace('_', ' ')  # Restore spaces after secure_filename
+            
+            # Add to current session's uploaded PDFs if not already there
+            pdf_name = os.path.splitext(filename)[0]
+            if pdf_name not in current_uploaded_pdfs:
+                current_uploaded_pdfs.append(pdf_name)
+                
+        # Update session with current uploaded PDFs
+        session['current_uploaded_pdfs'] = current_uploaded_pdfs
+        session.modified = True
             
         # Step 1: First create all products from Excel
         products_created = 0
@@ -194,20 +222,20 @@ def upload_pdf():
                 # Clean and prepare product data
                 pdf_name = os.path.splitext(file_name)[0]  # Remove extension for matching
                 
-                # Create product with all required fields
+                # Create product with all required fields - matching Excel column names exactly
                 product = Product(
-                    part_number=str(row.get('Part Number', '')).strip(),
+                    part_number=str(row.get('Part Number/SKU', '')).strip(),
                     file_name=file_name,
                     brand_url=str(row.get('Brand URL', '')).strip(),
-                    description=str(row.get('Description', '')).strip(),
-                    brand=str(row.get('Brand', '')).strip(),
+                    description=str(row.get('Product Description', '')).strip(),
+                    brand=str(row.get('Brand/Manufacturer', '')).strip(),
                     category=str(row.get('Category', '')).strip(),
                     original_price=float(row.get('Original Price (AED)', 0)) if pd.notna(row.get('Original Price (AED)')) else 0.0,
                     quantity=int(row.get('Quantity Available', 0)) if pd.notna(row.get('Quantity Available')) else 0,
                     physical_condition=str(row.get('Physical Condition', '')) if pd.notna(row.get('Physical Condition')) else '',
                     packaging_status=str(row.get('Packaging Status', '')) if pd.notna(row.get('Packaging Status')) else '',
                     completeness=str(row.get('Completeness', '')) if pd.notna(row.get('Completeness')) else '',
-                    warranty_days=int(row.get('Warranty (Days)', 0)) if pd.notna(row.get('Warranty (Days)')) else 0,
+                    warranty_days=int(row.get('Warranty Days Remaining', 0)) if pd.notna(row.get('Warranty Days Remaining')) else 0,
                     warranty_type=str(row.get('Warranty Type', '')) if pd.notna(row.get('Warranty Type')) else '',
                     seller_id=seller_id,
                     pdf_path='',  # Will be updated after PDF processing
@@ -301,20 +329,23 @@ def upload_pdf():
                 if normalized_pdf_name.endswith('.pdf'):
                     normalized_pdf_name = normalized_pdf_name[:-4]
                 
-                # Try to find a matching product ID using the normalized name
-                product_id = None
-                for file_pattern, pid in file_to_product_id.items():
-                    if file_pattern in normalized_pdf_name or normalized_pdf_name in file_pattern:
-                        product_id = pid
-                        break
-                        
-                print(f"\nProcessing PDF: {pdf_name}")
-                print(f"Normalized name: {normalized_pdf_name}")
-                print(f"Matched product_id: {product_id}")
+                # Find the highest product_id that matches the PDF name
+                matching_products = Product.query.filter(
+                    Product.file_name.ilike(f'%{normalized_pdf_name}%'),
+                    Product.seller_id == seller_id
+                ).order_by(Product.id.desc()).all()
                 
-                if product_id is None:
-                    print(f"Warning: No product found for PDF: {pdf_name}")
-                    print("Available product mappings:", file_to_product_id)
+                product_id = None
+                if matching_products:
+                    # Get the product with the highest ID
+                    product = matching_products[0]
+                    product_id = product.id
+                    # Update the PDF document with the product_id
+                    pdf_doc.product_id = product_id
+                    seller_db.session.commit()
+                    print(f"Mapped PDF '{pdf_name}' to product ID: {product_id}")
+                else:
+                    print(f"Warning: No matching product found for PDF: {pdf_name}")
                 
                 # Update the product's pdf_path if we found a matching product
                 if product_id:
@@ -583,13 +614,10 @@ def select_images():
         if not seller_id:
             return redirect('/login')
             
-        # Get the PDF paths from the current session
-        pdf_paths = session.get('pdf_paths', {})
-        if not pdf_paths:
+        # Get the PDF names from the current session's uploaded PDFs
+        current_pdf_names = session.get('current_uploaded_pdfs', [])
+        if not current_pdf_names:
             return "No PDFs found in current session. Please upload PDFs first."
-            
-        # Get the PDF names from the current session
-        current_pdf_names = [os.path.splitext(os.path.basename(pdf_path))[0] for pdf_path in pdf_paths.values()]
         
         # Get all images for the current PDFs
         images = ExtractedImage.query.filter(
@@ -817,34 +845,60 @@ def product_detail(product_id):
     if 'username' not in session or 'seller_id' not in session:
         return redirect('/login')
 
-    # Get product from database
-    product = Product.query.filter_by(id=product_id, seller_id=session['seller_id']).first()
-    
-    if not product:
-        return "Product not found", 404
-    
-    # Get image options
-    image_options = json.loads(product.image_options) if product.image_options else []
-    
-    # Format product data for the template
-    product_data = {
-        'id': product.id,
-        'model': product.file_name or 'N/A',
-        'brand': product.brand or 'N/A',
-        'part_number': product.part_number or 'N/A',
-        'description': product.description or 'No description available',
-        'price': product.original_price or 'N/A',
-        'quantity': product.quantity or 0,
-        'condition': product.physical_condition or 'N/A',
-        'packaging': product.packaging_status or 'N/A',
-        'completeness': product.completeness or 'N/A',
-        'warranty_days': product.warranty_days or 'N/A',
-        'warranty_type': product.warranty_type or 'N/A',
-        'image_options': image_options,
-        'selected_image': image_options[0] if image_options else '/static/default.jpg',
-        'brand_url': product.brand_url or '#',
-        'category': product.category or 'Uncategorized'
-    }
+    try:
+        # Get product from database with all fields using proper join
+        product = Product.query.filter_by(id=product_id, seller_id=session['seller_id']).first()
+        
+        if not product:
+            return "Product not found", 404
+        
+        # Get all selected images for this product
+        selected_images = seller_db.session.query(ExtractedImage).join(
+            SelectedImage,
+            SelectedImage.image_id == ExtractedImage.id
+        ).filter(
+            SelectedImage.product_id == product_id,
+            SelectedImage.seller_id == session['seller_id']
+        ).all()
+        
+        # Get image URLs for the carousel
+        image_urls = [url_for('serve_extracted_image', image_id=img.id) for img in selected_images]
+        
+        # If no selected images, use default
+        if not image_urls:
+            image_urls = ['/static/default.jpg']
+        
+        # Debug: Print product data
+        print(f"Product Data: {product.__dict__}")
+        
+        # Format all product data for the template with proper null checks
+        product_data = {
+            'id': product.id,
+            'name': getattr(product, 'file_name', 'N/A') or 'N/A',
+            'brand': getattr(product, 'brand', 'N/A') or 'N/A',
+            'part_number': getattr(product, 'part_number', 'N/A') or 'N/A',
+            'description': getattr(product, 'description', 'No description available') or 'No description available',
+            'original_price': float(getattr(product, 'original_price', 0.0)) or 0.0,
+            'quantity': int(getattr(product, 'quantity', 0)) or 0,
+            'physical_condition': getattr(product, 'physical_condition', 'Not specified') or 'Not specified',
+            'category': getattr(product, 'category', 'Uncategorized') or 'Uncategorized',
+            'packaging_status': getattr(product, 'packaging_status', 'Not specified') or 'Not specified',
+            'completeness': getattr(product, 'completeness', 'Not specified') or 'Not specified',
+            'warranty_days': int(getattr(product, 'warranty_days', 0)) or 0,
+            'warranty_type': getattr(product, 'warranty_type', 'Not specified') or 'Not specified',
+            'created_at': getattr(product, 'created_at', datetime.utcnow()).strftime('%Y-%m-%d %H:%M:%S'),
+            'image_urls': image_urls,
+            'selected_image': image_urls[0] if image_urls else '/static/default.jpg',
+            'brand_url': getattr(product, 'brand_url', '#') or '#',
+            'pdf_path': getattr(product, 'pdf_path', '') or ''
+        }
+        
+        # Debug: Print formatted product data
+        print(f"Formatted Product Data: {product_data}")
+        
+    except Exception as e:
+        print(f"Error in product_detail: {str(e)}")
+        return f"An error occurred: {str(e)}", 500
     
     return render_template('product_detail.html', product=product_data)
 

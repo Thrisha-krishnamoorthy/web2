@@ -122,11 +122,13 @@
         {% for product in products %}
             <a href="{{ url_for('product_detail', product_id=product.id) }}">
                 <div class="product-card">
-                    <img src="{{ product['image'] }}"
-                         onerror="this.onerror=null;this.src='/static/default.jpg';" alt="Product Image">
-                    <h3>{{ product['brand'] }} - {{ product['model'] }}</h3>
-                    <div class="price">
-                        Qty: {{ product['qty'] or 'N/A' }}
+                    <img src="{{ product['image_url'] }}"
+                         onerror="this.onerror=null;this.src='/static/default.jpg';" 
+                         alt="{{ product['name'] }}"
+                         style="max-height: 150px; object-fit: contain;">
+                    <h3>{{ product['name'] }}</h3>
+                    <div class="quantity">
+                        Qty: {{ product['quantity'] }}
                     </div>
                 </div>
             </a>

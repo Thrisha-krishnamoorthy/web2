@@ -18,6 +18,7 @@ class PDFDocument(db.Model):
     file_content = db.Column(db.LargeBinary, nullable=False)  # Changed from file_path to store actual file content
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
     seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=True)
 
     def __repr__(self):
         return f"<PDFDocument {self.filename}>"

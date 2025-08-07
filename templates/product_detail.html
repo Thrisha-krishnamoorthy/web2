@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ product['model'] }}</title>
+    <title>{{ product['name'] }}</title>
     <link rel="stylesheet" href="/static/styles.css">
     <style>
         body {
@@ -55,13 +55,19 @@
             justify-content: center;
             align-items: center;
             background: white;
+            height: 500px; /* Fixed height for the slide container */
         }
 
         .carousel-slide img {
-            width: 100%;
-            max-height: 400px;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: contain;
-            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin: 0 auto;
+            display: block;
         }
 
         .carousel-nav {
@@ -183,21 +189,13 @@
     <div class="product-image">
         <div class="carousel-container">
             <div class="carousel-slides">
-                {% if product.get('selected_images') %}
-                    {% for img_url in product['selected_images'].split(', ') %}
-                    <div class="carousel-slide">
-                        <img src="{{ img_url }}" 
-                             onerror="this.onerror=null;this.src='/static/default.jpg';"
-                             alt="{{ product['model'] }} - Image {{ loop.index }}">
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="carousel-slide">
-                        <img src="{{ product['image'] }}"
-                             onerror="this.onerror=null;this.src='/static/default.jpg';"
-                             alt="{{ product['model'] }}">
-                    </div>
-                {% endif %}
+                {% for img_url in product['image_urls'] %}
+                <div class="carousel-slide">
+                    <img src="{{ img_url }}" 
+                         onerror="this.onerror=null;this.src='/static/default.jpg';"
+                         alt="{{ product['name'] }} - Image {{ loop.index }}">
+                </div>
+                {% endfor %}
             </div>
             <button class="carousel-btn prev" onclick="moveSlide(-1)">❮</button>
             <button class="carousel-btn next" onclick="moveSlide(1)">❯</button>
@@ -208,51 +206,52 @@
         </div>
     </div>
     <div class="product-info">
-        <h1>{{ product['brand'] }} - {{ product['model'] }}</h1>
-    
-        <div class="price">
-            Original Price: AED {{ product['original_price'] }} <br>
-            <strong>Discounted Price: AED {{ product['discounted_price'] }}</strong>
-        </div>
+        <h1>{{ product['name'] }}</h1>
+        <h2>{{ product['brand'] }}</h2>
     
         <div class="box">
-            <span class="label">Part Number / SKU:</span><br>
-            {{ product['sku'] }}
+            <span class="label">Part Number:</span><br>
+            {{ product['part_number'] }}
         </div>
-    
+        
         <div class="box">
-            <span class="label">Brand Website:</span><br>
-            <a href="{{ product['brand_url'] }}" target="_blank">{{ product['brand_url'] }}</a>
+            <span class="label">Price:</span><br>
+            AED {{ "%.2f"|format(product['original_price']) }}
         </div>
-    
+        
+        <div class="box">
+            <span class="label">Quantity Available:</span><br>
+            {{ product['quantity'] }}
+        </div>
+        
         <div class="box">
             <span class="label">Category:</span><br>
             {{ product['category'] }}
         </div>
-    
+        
         <div class="box">
-            <span class="label">Quantity Available:</span><br>
-            {{ product['qty'] }}
+            <span class="label">Condition:</span><br>
+            {{ product['physical_condition'] }}
         </div>
-    
-        <div class="box">
-            <span class="label">Physical Condition:</span><br>
-            {{ product['condition'] }}
-        </div>
-    
+        
         <div class="box">
             <span class="label">Packaging Status:</span><br>
-            {{ product['packaging'] }}
+            {{ product['packaging_status'] }}
         </div>
-    
+        
         <div class="box">
             <span class="label">Completeness:</span><br>
             {{ product['completeness'] }}
         </div>
-    
+        
         <div class="box">
             <span class="label">Warranty:</span><br>
             {{ product['warranty_days'] }} Days - {{ product['warranty_type'] }}
+        </div>
+        
+        <div class="box">
+            <span class="label">Listed On:</span><br>
+            {{ product['created_at'] }}
         </div>
     
         <div class="description">
