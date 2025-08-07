@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 import json
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, session, send_from_directory, jsonify, url_for, flash
+from flask import Flask, render_template, request, redirect, session, send_from_directory, jsonify, url_for, flash, make_response
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from admin_seller_app.models import db as seller_db, Seller, PDFDocument, ExcelDocument, Product, ExtractedImage, SelectedImage
@@ -46,6 +46,12 @@ os.makedirs(IMAGE_FOLDER, exist_ok=True)
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
+
+@app.route('/')
+def home():
+    if 'logged_in' in session and 'seller_id' in session:
+        return redirect('/product-catalog')
+    return redirect('/login')
 
 @app.route('/product-catalog')
 def product_catalog():
@@ -903,35 +909,57 @@ def product_detail(product_id):
     return render_template('product_detail.html', product=product_data)
 
 
-@app.route('/extracted-image/<int:image_id>')
+@app.route('/download-pdf/<int:product_id>')
+def download_pdf(product_id):
+    """Serve the PDF file associated with a product."""
+    if 'seller_id' not in session:
+        return redirect('/login')
+        
+    try:
+        # Get the PDF document for this product
+        pdf_doc = PDFDocument.query.filter_by(
+            product_id=product_id,
+            seller_id=session['seller_id']
+        ).first()
+        
+        if not pdf_doc:
+            return "PDF not found", 404
+            
+        # Create a response with the PDF content
+        response = make_response(pdf_doc.file_content)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename={pdf_doc.filename}'
+        return response
+        
+    except Exception as e:
+        print(f"Error serving PDF for product {product_id}: {str(e)}")
+        return "Error serving PDF", 500
+
+@app.route('/serve-extracted-image/<int:image_id>')
 def serve_extracted_image(image_id):
     """Serve an image directly from the database using its ID."""
-    image = ExtractedImage.query.get(image_id)
-    if not image or not image.image_content:
-        abort(404, description="Image not found or has no content")
-    
-    # Infer MIME type from filename extension
-    ext = image.image_filename.rsplit('.', 1)[-1].lower()
-    if ext == 'png':
-        mimetype = 'image/png'
-    elif ext in ('jpg', 'jpeg'):
-        mimetype = 'image/jpeg'
-    elif ext == 'gif':
-        mimetype = 'image/gif'
-    elif ext == 'webp':
-        mimetype = 'image/webp'
-    else:
-        mimetype = 'application/octet-stream'  # fallback
-    
-    # Create response with proper headers
-    response = app.response_class(
-        response=image.image_content,
-        status=200,
-        mimetype=mimetype
-    )
-    response.headers['Content-Disposition'] = f'inline; filename="{image.image_filename}"'
-    response.headers['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
-    return response
+    try:
+        # Get the image from the database
+        image = ExtractedImage.query.get_or_404(image_id)
+        
+        # Check if the image belongs to the current seller
+        if image.seller_id != session.get('seller_id'):
+            return "Unauthorized", 403
+            
+        # Determine the MIME type based on the file extension
+        mime_type = 'image/jpeg'  # default
+        if image.image_filename.lower().endswith('.png'):
+            mime_type = 'image/png'
+            
+        # Serve the image content with the appropriate MIME type
+        response = make_response(image.image_content)
+        response.headers['Content-Type'] = mime_type
+        response.headers['Content-Disposition'] = f'inline; filename={image.image_filename}'
+        return response
+        
+    except Exception as e:
+        print(f"Error serving image {image_id}: {str(e)}")
+        return "Error serving image", 500
 
 @app.route('/uploads/<path:filename>')
 def download_file(filename):

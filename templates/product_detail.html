@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>{{ product['name'] }}</title>
     <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -180,6 +181,29 @@
         .back-link:hover {
             text-decoration: underline;
         }
+
+        .pdf-download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            margin-top: 5px;
+        }
+
+        .pdf-download-btn:hover {
+            background-color: #c0392b;
+            text-decoration: none;
+        }
+
+        .pdf-download-btn i {
+            font-size: 1.2em;
+        }
     </style>
 </head>
 <body>
@@ -259,12 +283,16 @@
             {{ product['description'] or 'No description available.' }}
         </div>
     
-        {% if product.get('pdf_path') %}
         <div class="box">
-            <span class="label">Download PDF:</span><br>
-            <a href="/{{ product['pdf_path'] }}" target="_blank">View Product PDF</a>
+            <span class="label">Product Documents:</span><br>
+            {% if product.get('pdf_path') %}
+            <a href="{{ url_for('download_pdf', product_id=product.id) }}" class="pdf-download-btn">
+                <i class="fas fa-file-pdf"></i> Download Product PDF
+            </a>
+            {% else %}
+            <span>No PDF available</span>
+            {% endif %}
         </div>
-        {% endif %}
     
         <button class="chat-button">Enquire</button>
     </div>    
