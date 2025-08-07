@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload PDF Only</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            text-align: center;
+            padding: 60px;
+        }
+
+        .upload-box {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 30px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .nav-bar {
+            margin-bottom: 30px;
+        }
+
+        .nav-bar a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+            margin: 0 10px;
+        }
+
+        .nav-bar a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<h1>Upload PDF File Only</h1>
+
+    <div class="upload-box">
+        
+        <form id="uploadForm" action="/upload-pdf" method="post" enctype="multipart/form-data">
+            <label>Upload PDF Files (Multiple):</label><br>
+            <input type="file" name="pdf_file" id="pdfFiles" accept=".pdf" multiple required><br><br>
+        
+            <label>Upload Excel File (.xlsx):</label><br>
+            <input type="file" name="excel_file" id="excelFile" accept=".xlsx" required><br><br>
+        
+            <button type="submit" id="uploadButton">Upload Files</button>
+            <div id="uploadStatus" style="margin-top: 10px; display: none;">
+                <p>Processing files and extracting images...</p>
+                <div class="progress" style="width: 100%; background-color: #e0e0e0; border-radius: 5px;">
+                    <div id="progressBar" style="width: 0%; height: 20px; background-color: #4CAF50; border-radius: 5px; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </form>
+        
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const uploadButton = document.getElementById('uploadButton');
+            const uploadStatus = document.getElementById('uploadStatus');
+            const progressBar = document.getElementById('progressBar');
+            
+            // Show upload status
+            uploadStatus.style.display = 'block';
+            uploadButton.disabled = true;
+            
+            try {
+                // Submit the form data with AJAX header
+                const response = await fetch('/upload-pdf', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'  // Mark as AJAX request
+                    }
+                });
+                
+                // Update progress
+                progressBar.style.width = '100%';
+                
+                if (response.redirected) {
+                    // If the server redirects, follow the redirect
+                    window.location.href = response.url;
+                } else {
+                    const result = await response.json();
+                    if (result.success) {
+                        // Log success message to console
+                        console.log('Products created successfully!', result);
+                        window.location.href = result.redirect || '/dashboard';
+                    } else {
+                        console.error('Upload failed:', result.message || 'Unknown error');
+                        alert('Upload failed: ' + (result.message || 'Unknown error'));
+                        uploadButton.disabled = false;
+                    }
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('An error occurred during upload. Please try again.');
+                uploadButton.disabled = false;
+                uploadStatus.style.display = 'none';
+                progressBar.style.width = '0%';
+            }
+        });
+        
+        // Progress tracking for file selection
+        const pdfFiles = document.getElementById('pdfFiles');
+        pdfFiles.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                console.log(`Selected ${this.files.length} PDF file(s) for upload`);
+            }
+        });
+        
+        const excelFile = document.getElementById('excelFile');
+        excelFile.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                console.log(`Selected Excel file: ${this.files[0].name}`);
+            }
+        });
+    </script>
+</body>
+</html>

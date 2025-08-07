@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>Seller Management</h2>
+  <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Logout</a>
+</div>
+
+<form method="post" class="card p-3 mb-4">
+  <h5>Create New Seller</h5>
+  <div class="row">
+    <div class="col-md-4">
+      <input type="text" name="username" placeholder="Username" class="form-control" required>
+    </div>
+    <div class="col-md-4">
+      <input type="password" name="password" placeholder="Password" class="form-control" required>
+    </div>
+    <div class="col-md-4">
+      <button class="btn btn-success w-100">Create Seller</button>
+    </div>
+  </div>
+</form>
+
+<h5>Existing Sellers</h5>
+<table class="table table-bordered table-hover">
+  <thead class="table-secondary">
+    <tr>
+      <th>ID</th>
+      <th>Username</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for seller in sellers %}
+    <tr>
+      <td>{{ seller.id }}</td>
+      <td>{{ seller.username }}</td>
+      <td>
+        <a href="{{ url_for('delete_seller', id=seller.id) }}" class="btn btn-sm btn-danger">Delete</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

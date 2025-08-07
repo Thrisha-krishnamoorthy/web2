@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ product['model'] }}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1100px;
+            background: white;
+            margin: auto;
+            border-radius: 12px;
+            display: flex;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .product-image {
+            flex: 1;
+            background-color: #fafafa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .carousel-slides {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+            width: 100%;
+        }
+
+        .carousel-slide {
+            min-width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+        }
+
+        .carousel-slide img {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            padding: 20px;
+        }
+
+        .carousel-nav {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        .carousel-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ccc;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: background-color 0.3s;
+        }
+
+        .carousel-dot.active {
+            background-color: #007bff;
+        }
+
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .carousel-btn.prev {
+            left: 10px;
+        }
+
+        .carousel-btn.next {
+            right: 10px;
+        }
+
+        .product-info {
+            flex: 1;
+            padding: 30px 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-info h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .product-info .price {
+            font-size: 24px;
+            color: #444;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .product-info .label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .chat-button {
+            margin-top: 20px;
+            background-color: #107ee6;
+            color: black;
+            border: none;
+            padding: 12px 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 130px;
+            text-align: center;
+        }
+
+        .product-info .box {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #333;
+            background: #f8f9fa;
+        }
+
+        .description {
+            margin-top: 25px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .back-link {
+            display: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    
+
+<div class="container">
+    <div class="product-image">
+        <div class="carousel-container">
+            <div class="carousel-slides">
+                {% if product.get('selected_images') %}
+                    {% for img_url in product['selected_images'].split(', ') %}
+                    <div class="carousel-slide">
+                        <img src="{{ img_url }}" 
+                             onerror="this.onerror=null;this.src='/static/default.jpg';"
+                             alt="{{ product['model'] }} - Image {{ loop.index }}">
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="carousel-slide">
+                        <img src="{{ product['image'] }}"
+                             onerror="this.onerror=null;this.src='/static/default.jpg';"
+                             alt="{{ product['model'] }}">
+                    </div>
+                {% endif %}
+            </div>
+            <button class="carousel-btn prev" onclick="moveSlide(-1)">❮</button>
+            <button class="carousel-btn next" onclick="moveSlide(1)">❯</button>
+        </div>
+        
+        <div class="carousel-nav" id="carouselNav">
+            <!-- Dots will be added by JavaScript -->
+        </div>
+    </div>
+    <div class="product-info">
+        <h1>{{ product['brand'] }} - {{ product['model'] }}</h1>
+    
+        <div class="price">
+            Original Price: AED {{ product['original_price'] }} <br>
+            <strong>Discounted Price: AED {{ product['discounted_price'] }}</strong>
+        </div>
+    
+        <div class="box">
+            <span class="label">Part Number / SKU:</span><br>
+            {{ product['sku'] }}
+        </div>
+    
+        <div class="box">
+            <span class="label">Brand Website:</span><br>
+            <a href="{{ product['brand_url'] }}" target="_blank">{{ product['brand_url'] }}</a>
+        </div>
+    
+        <div class="box">
+            <span class="label">Category:</span><br>
+            {{ product['category'] }}
+        </div>
+    
+        <div class="box">
+            <span class="label">Quantity Available:</span><br>
+            {{ product['qty'] }}
+        </div>
+    
+        <div class="box">
+            <span class="label">Physical Condition:</span><br>
+            {{ product['condition'] }}
+        </div>
+    
+        <div class="box">
+            <span class="label">Packaging Status:</span><br>
+            {{ product['packaging'] }}
+        </div>
+    
+        <div class="box">
+            <span class="label">Completeness:</span><br>
+            {{ product['completeness'] }}
+        </div>
+    
+        <div class="box">
+            <span class="label">Warranty:</span><br>
+            {{ product['warranty_days'] }} Days - {{ product['warranty_type'] }}
+        </div>
+    
+        <div class="description">
+            <span class="label">Description:</span><br>
+            {{ product['description'] or 'No description available.' }}
+        </div>
+    
+        {% if product.get('pdf_path') %}
+        <div class="box">
+            <span class="label">Download PDF:</span><br>
+            <a href="/{{ product['pdf_path'] }}" target="_blank">View Product PDF</a>
+        </div>
+        {% endif %}
+    
+        <button class="chat-button">Enquire</button>
+    </div>    
+</div>
+
+
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.carousel-slide');
+    const nav = document.getElementById('carouselNav');
+    
+    // Only initialize if we have multiple slides
+    if (slides.length > 1) {
+        // Create navigation dots
+        slides.forEach((_, index) => {
+            const dot = document.createElement('button');
+            dot.classList.add('carousel-dot');
+            if (index === 0) dot.classList.add('active');
+            dot.onclick = () => goToSlide(index);
+            nav.appendChild(dot);
+        });
+        
+        // Auto-advance slides every 5 seconds
+        setInterval(() => moveSlide(1), 5000);
+    } else {
+        // Hide navigation if only one slide
+        nav.style.display = 'none';
+    }
+    
+    function moveSlide(n) {
+        showSlide(currentSlide + n);
+    }
+    
+    function goToSlide(n) {
+        showSlide(n);
+    }
+    
+    function showSlide(n) {
+        // Wrap around if at the beginning/end
+        if (n >= slides.length) {
+            currentSlide = 0;
+        } else if (n < 0) {
+            currentSlide = slides.length - 1;
+        } else {
+            currentSlide = n;
+        }
+        
+        // Update slide position
+        const offset = -currentSlide * 100;
+        document.querySelector('.carousel-slides').style.transform = `translateX(${offset}%)`;
+        
+        // Update active dot
+        const dots = document.querySelectorAll('.carousel-dot');
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === currentSlide);
+        });
+    }
+</script>
+</body>
+</html>

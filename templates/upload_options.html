@@ -1,0 +1,148 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Options</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            text-align: center;
+            padding: 60px;
+        }
+
+        .option-box {
+            display: inline-block;
+            background: white;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .option-box h2 {
+            margin-bottom: 25px;
+        }
+
+        .option-btn {
+            display: block;
+            margin: 15px auto;
+            padding: 12px 30px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 16px;
+            width: 260px;
+        }
+
+        .option-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="option-box">
+        <h2>Choose Upload Option</h2>
+
+        <a href="/upload-pdf" class="option-btn">📄 Upload Only PDF</a>
+        <a href="/upload-excel" class="option-btn">📊 Upload Only Excel</a>
+        <a href="/upload" class="option-btn">📁 Upload PDF & Excel</a>
+    </div>
+
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Options</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00bcd4;
+            --secondary: #7b1fa2;
+            --hover-primary: #0097a7;
+            --hover-secondary: #6a1b9a;
+            --text-dark: #1b2e4b;
+            --bg-gradient: linear-gradient(135deg, #e0f7fa, #fce4ec);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-gradient);
+            text-align: center;
+            padding: 60px 20px;
+            margin: 0;
+        }
+
+        .option-box {
+            background: #ffffff;
+            padding: 40px 50px;
+            border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .option-box:hover {
+            transform: scale(1.015);
+        }
+
+        .option-box h2 {
+            font-size: 24px;
+            color: var(--text-dark);
+            margin-bottom: 30px;
+        }
+
+        .option-btn {
+            display: block;
+            margin: 18px auto;
+            padding: 14px 30px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 16px;
+            width: 260px;
+            font-weight: 600;
+            transition: transform 0.2s ease, background 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 188, 212, 0.15);
+        }
+
+        .option-btn:hover {
+            background: linear-gradient(135deg, var(--hover-primary), var(--hover-secondary));
+            transform: scale(1.05);
+            box-shadow: 0 12px 30px rgba(0, 188, 212, 0.3);
+        }
+
+        @media (max-width: 480px) {
+            .option-box {
+                width: 100%;
+                padding: 30px 20px;
+            }
+
+            .option-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="option-box">
+        <h2>Choose Upload Option</h2>
+
+        <a href="/upload-pdf" class="option-btn">📄 Upload Only PDF</a>
+        <a href="/upload-excel" class="option-btn">📊 Upload Only Excel</a>
+        <a href="/upload" class="option-btn">📁 Upload PDF & Excel</a>
+    </div>
+
+</body>
+</html>
