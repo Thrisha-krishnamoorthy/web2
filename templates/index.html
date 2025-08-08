@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Un Stock It</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" />
+
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+
+</head>
+
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <div class="navbar-logo">
+        <!-- <img src="assets/logo.svg" alt="Unstock It" /> -->
+         <h1>Unstock It</h1>
+      </div>
+      <div class="navbar-search">
+        <input type="text" placeholder="What can we help you find today?" />
+        <i class="fa fa-search"></i>
+      </div>
+
+      <ul class="navbar-icons">
+        <li><i class="fa fa-bell"></i></li>
+        <li><i class="fa fa-user"></i> <span>Sign In</span></li>
+        <li><i class="fa fa-shopping-cart"></i></li>
+        <li class="sidebar-toggle" id="sidebarToggle"><i class="fa fa-bars"></i></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <ul>
+      <li><i class="fa fa-laptop"></i> Hardware</li>
+      <li><i class="fa fa-code"></i> Software</li>
+      <li><i class="fa fa-wrench"></i> Services</li>
+      <li><i class="fa fa-network-wired"></i> IT Solutions</li>
+      <li><i class="fa fa-building"></i> Brands</li>
+      <li><i class="fa fa-lightbulb"></i> Research Hub</li>
+    </ul>
+  </aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- MAIN CONTENT -->
+  <main>
+    <style>
+  /* Container styling */
+  section.hero,
+  section.why-work {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  /* HERO SECTION */
+  .hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .hero-text {
+    flex: 1 1 400px;
+    min-width: 280px;
+  }
+
+  .hero-text h1 {
+    font-size: 2.5rem;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    color: #222;
+  }
+
+  .hero-text h1 span {
+    color: #007BFF; /* Accent color */
+  }
+
+  .hero-text p {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+
+  .cta-btn {
+    background-color: #007BFF;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .cta-btn:hover {
+    background-color: #0056b3;
+  }
+
+  .hero-image {
+    flex: 1 1 400px;
+    min-width: 280px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .hero-image img {
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    object-fit: cover;
+  }
+
+  /* WHY WORK SECTION */
+  .why-work {
+    text-align: center;
+    margin-top: 4rem;
+  }
+
+  .why-work h2 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .why-work h2 span {
+    color: #007BFF;
+  }
+
+  .why-work p {
+    color: #555;
+    font-size: 1.2rem;
+    margin-bottom: 3rem;
+  }
+
+  .features {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2rem;
+  }
+
+  .feature-card {
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    flex: 1 1 220px;
+    max-width: 300px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .feature-card:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .feature-card i {
+    font-size: 3rem;
+    color: #007BFF;
+    margin-bottom: 1rem;
+  }
+
+  .feature-card h3 {
+    font-size: 1.3rem;
+    color: #222;
+  }
+
+  /* RESPONSIVE */
+
+  @media (max-width: 900px) {
+    .hero {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .hero-text,
+    .hero-image {
+      flex: none;
+      min-width: auto;
+      width: 100%;
+    }
+
+    .hero-text h1 {
+      font-size: 2rem;
+    }
+
+    .features {
+      gap: 1.5rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-text h1 {
+      font-size: 1.6rem;
+    }
+
+    .hero-text p,
+    .why-work p {
+      font-size: 1rem;
+    }
+
+    .feature-card {
+      padding: 1.5rem 1rem;
+    }
+
+    .feature-card i {
+      font-size: 2.5rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.1rem;
+    }
+  }
+</style>
+
+<section class="hero">
+  <div class="hero-text">
+    <h1>Unlock Insights<br />with <span>Advanced Web Scraping for Electronics.</span></h1>
+    <p>
+      Gather real-time data from thousands of electronics stores and marketplaces. 
+      Our cutting-edge web scraping solutions help you monitor prices, track trends, and analyze product availability effortlessly.
+      Stay ahead in the competitive electronics market with Techstrack.
+    </p>
+    <button class="cta-btn">Explore Web Scraping Solutions</button>
+  </div>
+  <div class="hero-image">
+    <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80"
+      alt="Electronics Data Scraping" />
+  </div>
+</section>
+
+<section class="why-work">
+  <h2>Why Choose <span>Techstrack for Web Scraping?</span></h2>
+  <p>We deliver precise, scalable, and customizable data scraping solutions tailored for the electronics industry.</p>
+  <div class="features">
+    <div class="feature-card">
+      <i class="fa fa-robot"></i>
+      <h3>Automated Data Extraction</h3>
+    </div>
+    <div class="feature-card">
+      <i class="fa fa-chart-line"></i>
+      <h3>Real-Time Market Analytics</h3> 
+    </div>
+    <div class="feature-card">
+      <i class="fa fa-shield-alt"></i>
+      <h3>Secure & Compliant Scraping</h3>
+    </div>
+  </div>
+</section>
+
+
+ 
+    
+
+    <!-- Categories Section -->
+    <section class="image-gallery">
+      <div class="section-header">
+        <h2>Explore Our Collection</h2>
+        <a href="{{ url_for('product_page') }}" class="view-all-btn">View All</a>
+      </div>
+      <div class="gallery-wrapper">
+        {% for category in categories %}
+        <a href="{{ url_for('product_page', category=category.name) }}" class="gallery-item category-card">
+          <img src="{{ category.image_url }}" alt="{{ category.name }}" />
+          <div class="category-info">
+            <h3>{{ category.name }}</h3>
+            <span class="product-count">{{ category.product_count }} items</span>
+          </div>
+          <div class="image-overlay">View Products</div>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+
+  <!-- JavaScript -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

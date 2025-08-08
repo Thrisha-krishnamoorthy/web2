@@ -1,0 +1,320 @@
+/* Add your CSS styles here */
+/* You can move the inline styles from the HTML to this file */
+
+/* Navbar styles */
+.navbar {
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.navbar-logo h1 {
+  color: #007BFF;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.navbar-search {
+  position: relative;
+  flex-grow: 1;
+  max-width: 600px;
+  margin: 0 2rem;
+}
+
+.navbar-search input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 30px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.navbar-search input:focus {
+  border-color: #007BFF;
+}
+
+.navbar-search i {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.navbar-icons {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.navbar-icons li {
+  cursor: pointer;
+  color: #333;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-icons li span {
+  font-size: 1rem;
+}
+
+/* Sidebar styles */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -300px;
+  width: 280px;
+  height: 100vh;
+  background-color: #ffffff;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+  transition: left 0.3s ease;
+  padding: 1.5rem 0;
+  overflow-y: auto;
+}
+
+.sidebar.active {
+  left: 0;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar li {
+  padding: 0.75rem 2rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sidebar li:hover {
+  background-color: #f5f5f5;
+}
+
+.sidebar i {
+  width: 1.5rem;
+  text-align: center;
+  color: #007BFF;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Image Gallery Styles */
+.image-gallery {
+  max-width: 1200px;
+  margin: 3rem auto;
+  padding: 0 1rem;
+}
+
+.image-gallery .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 0 1rem;
+}
+
+.image-gallery h2 {
+  color: #333;
+  margin: 0;
+}
+
+.view-all-btn {
+  background-color: #007BFF;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.view-all-btn:hover {
+  background-color: #0056b3;
+  color: white;
+}
+
+.gallery-wrapper {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 1rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: #007BFF #f1f1f1;
+}
+
+.gallery-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.gallery-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.gallery-wrapper::-webkit-scrollbar-thumb {
+  background-color: #007BFF;
+  border-radius: 4px;
+}
+
+.gallery-item {
+  flex: 0 0 auto;
+  transition: transform 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gallery-item:hover {
+  transform: translateY(-5px);
+}
+
+.gallery-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gallery-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.gallery-item:hover img {
+  transform: scale(1.05);
+}
+
+.category-info {
+  padding: 12px;
+  text-align: center;
+}
+
+.category-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.product-count {
+  font-size: 0.8rem;
+  color: #666;
+  display: block;
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 123, 255, 0.9);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-weight: 500;
+  text-align: center;
+  padding: 1rem;
+}
+
+.gallery-item:hover .image-overlay {
+  opacity: 1;
+}
+
+/* Responsive adjustments for category cards */
+@media (max-width: 768px) {
+  .gallery-wrapper {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .gallery-item img {
+    height: 120px;
+  }
+  
+  .category-info h3 {
+    font-size: 0.9rem;
+  }
+  
+  .product-count {
+    font-size: 0.75rem;
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
+  .navbar-container {
+    padding: 0 1rem;
+  }
+  
+  .navbar-search {
+    margin: 0 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar-search {
+    display: none;
+  }
+  
+  .navbar-icons li span {
+    display: none;
+  }
+}
