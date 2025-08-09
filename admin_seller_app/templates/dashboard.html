@@ -1,45 +1,322 @@
-{% extends "base.html" %}
-{% block title %}Admin Dashboard{% endblock %}
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h2>Seller Management</h2>
-  <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Logout</a>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Seller Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4a6cf7;
+            --primary-dark: #3a5bd9;
+            --secondary: #6c757d;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --danger: #e53e3e;
+            --success: #38a169;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
 
-<form method="post" class="card p-3 mb-4">
-  <h5>Create New Seller</h5>
-  <div class="row">
-    <div class="col-md-4">
-      <input type="text" name="username" placeholder="Username" class="form-control" required>
-    </div>
-    <div class="col-md-4">
-      <input type="password" name="password" placeholder="Password" class="form-control" required>
-    </div>
-    <div class="col-md-4">
-      <button class="btn btn-success w-100">Create Seller</button>
-    </div>
-  </div>
-</form>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<h5>Existing Sellers</h5>
-<table class="table table-bordered table-hover">
-  <thead class="table-secondary">
-    <tr>
-      <th>ID</th>
-      <th>Username</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for seller in sellers %}
-    <tr>
-      <td>{{ seller.id }}</td>
-      <td>{{ seller.username }}</td>
-      <td>
-        <a href="{{ url_for('delete_seller', id=seller.id) }}" class="btn btn-sm btn-danger">Delete</a>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endblock %}
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f0f4f8;
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            color: #2d3748;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logout-btn {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(74, 108, 247, 0.3);
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 108, 247, 0.4);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+            margin-bottom: 0;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            background-color: #f8fafc;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.2);
+            background-color: white;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(74, 108, 247, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 108, 247, 0.4);
+        }
+
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+
+        .btn-danger:hover {
+            background: #c53030;
+            transform: translateY(-2px);
+        }
+
+        .sellers-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .sellers-table th {
+            background: #f7fafc;
+            padding: 15px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .sellers-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #edf2f7;
+            vertical-align: middle;
+        }
+
+        .sellers-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .sellers-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .action-cell {
+            text-align: right;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #718096;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .form-group {
+                width: 100%;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .sellers-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="page-title">Seller Management</h1>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Create New Seller</h2>
+            <form method="post">
+                <div class="form-row">
+                    <div class="form-group">
+                        <input type="text" name="username" class="form-control" placeholder="Username" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="password" class="form-control" placeholder="Password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Create Seller
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Existing Sellers</h2>
+            {% if sellers %}
+                <div class="table-responsive">
+                    <table class="sellers-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th class="action-cell">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for seller in sellers %}
+                            <tr>
+                                <td>#{{ seller.id }}</td>
+                                <td>{{ seller.username }}</td>
+                                <td class="action-cell">
+                                    <a href="{{ url_for('delete_seller', id=seller.id) }}" 
+                                       class="btn btn-danger"
+                                       onclick="return confirm('Are you sure you want to delete this seller? This action cannot be undone.')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-users" style="font-size: 3rem; opacity: 0.5; margin-bottom: 15px;"></i>
+                    <p>No sellers found. Create your first seller to get started.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Add animation to table rows
+        document.addEventListener('DOMContentLoaded', function() {
+            const rows = document.querySelectorAll('.sellers-table tbody tr');
+            rows.forEach((row, index) => {
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(-10px)';
+                row.style.animation = `fadeIn 0.4s ease-out ${index * 0.05}s forwards`;
+            });
+        });
+    </script>
+</body>
+</html>

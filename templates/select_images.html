@@ -2,46 +2,104 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Select Product Images</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Product Images | Product Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f7f7f7;
-            margin: 0;
-            padding: 30px;
+        :root {
+            --primary: #00bcd4;
+            --primary-light: #4dd0e1;
+            --secondary: #7b1fa2;
+            --hover-primary: #0097a7;
+            --hover-secondary: #6a1b9a;
+            --text-dark: #1b2e4b;
+            --text-light: #6c757d;
+            --bg-gradient: linear-gradient(135deg, #e0f7fa 0%, #fce4ec 100%);
+            --card-bg: rgba(255, 255, 255, 0.98);
+            --card-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
         }
 
-        h2 {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin: 0;
+            padding: 30px 20px;
+            min-height: 100vh;
+        }
+
+        h1 {
             text-align: center;
-            margin-bottom: 30px;
+            margin: 0 0 15px;
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 3px;
         }
 
         .product-block {
-            margin-bottom: 40px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
         }
 
+        /* Removed the animated line effect from product blocks */
+
         .product-title {
-            font-size: 20px;
-            margin-bottom: 15px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: var(--text-dark);
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .selection-info {
-            font-size: 14px;
-            color: #666;
+            font-size: 0.9rem;
+            color: var(--text-light);
             margin-left: 10px;
+            font-weight: 400;
         }
 
         .image-options {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
+            padding: 10px 0;
         }
 
         .image-box {
@@ -50,37 +108,49 @@
             border-radius: 10px;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.3s ease;
-            width: 150px;
+            transition: var(--transition);
+            width: 100%;
+            aspect-ratio: 1;
+            background: #f8f9fa;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
 
         .image-box img {
             width: 100%;
-            height: 120px;
+            height: 100%;
             object-fit: cover;
             display: block;
-            background-color: #eee;
+            background-color: #f0f0f0;
+            transition: var(--transition);
+        }
+
+        .image-box:hover img {
+            transform: scale(1.03);
         }
 
         .image-box.selected {
-            border: 3px solid #007bff;
+            border: 3px solid var(--primary);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
         }
 
         .image-box .checkmark {
             position: absolute;
-            top: 5px;
-            right: 5px;
-            background: #007bff;
+            top: 8px;
+            right: 8px;
+            background: var(--primary);
             color: white;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
             opacity: 0;
-            transition: opacity 0.2s;
+            transition: var(--transition);
+            z-index: 2;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
         .image-box.selected .checkmark {
@@ -89,18 +159,20 @@
 
         .image-box .selection-number {
             position: absolute;
-            top: 5px;
-            left: 5px;
-            background: #007bff;
+            top: 8px;
+            left: 8px;
+            background: var(--secondary);
             color: white;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
-            font-weight: bold;
+            font-weight: 600;
+            z-index: 2;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
         input[type="checkbox"] {
@@ -109,39 +181,68 @@
 
         .submit-btn {
             display: block;
-            margin: 30px auto 0;
-            padding: 12px 30px;
-            background: #007bff;
+            margin: 40px auto 20px;
+            padding: 14px 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            font-size: 16px;
+            font-size: 1rem;
+            font-weight: 600;
             border: none;
-            border-radius: 6px;
+            border-radius: 50px;
             cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .submit-btn:hover {
-            background-color: #0056b3;
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            z-index: -1;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .submit-btn:hover::before {
+            opacity: 1;
+        }
+
+        .submit-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .skip-btn {
-            font-size: 14px;
-            padding: 6px 14px;
-            background: #ccc;
-            border: none;
-            border-radius: 5px;
+            font-size: 0.85rem;
+            padding: 8px 16px;
+            background: #f0f0f0;
+            color: var(--text-dark);
+            border: 1px solid #ddd;
+            border-radius: 6px;
             cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: var(--transition);
         }
 
         .skip-btn:hover {
-            background-color: #999;
+            background: #e0e0e0;
+            border-color: #ccc;
         }
     </style>
 </head>
 <body>
-    <h1>Select Images for Products</h1>
-    <p style="text-align: center; color: #666; margin-top: -15px; margin-bottom: 20px;">
-        Select one or more images per product. The first selected image will be used as the main image.
-    </p>
+    <div class="container" style="max-width: 1400px; margin: 0 auto;">
+        <h1>Select Images for Products</h1>
+        <p style="text-align: center; color: var(--text-light); margin: 10px 0 30px; font-size: 1.05rem; max-width: 700px; margin-left: auto; margin-right: auto;">
+            <i class="fas fa-info-circle" style="color: var(--primary); margin-right: 8px;"></i>
+            Select one or more images per product. The first selected image will be used as the main image.
+        </p>
 
 <div id="selection-form">
     {% for model, data in image_options.items() %}
@@ -171,9 +272,11 @@
     </div>
     {% endfor %}
 
-    <button type="button" class="submit-btn" onclick="saveSelections()">💾 Save Selections</button>
-    <div id="save-status" style="text-align: center; margin-top: 10px; font-weight: bold;"></div>
-</div>
+        <button type="button" class="submit-btn" onclick="saveSelections()">
+            <i class="fas fa-save" style="margin-right: 8px;"></i> Save Selections
+        </button>
+        <div id="save-status" style="text-align: center; margin-top: 15px; font-weight: 500; min-height: 24px; color: var(--primary);"></div>
+    </div>
 
 <script>
     // Track selected images for each product

@@ -3,10 +3,10 @@ import pandas as pd
 import pickle
 import json
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, session, send_from_directory, jsonify, url_for, flash, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, send_from_directory, make_response
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
-from admin_seller_app.models import db as seller_db, Seller, PDFDocument, ExcelDocument, Product, ExtractedImage, SelectedImage
+from admin_seller_app.models import db as seller_db, Seller, PDFDocument, ExcelDocument, Product, ExtractedImage, SelectedImage, ScrapedImage
 from urllib.parse import unquote
 from dotenv import load_dotenv
 
@@ -64,18 +64,28 @@ def product_catalog():
     # Format products for the template
     formatted_products = []
     for product in products:
-        # Get one selected image for this product
-        selected_image = SelectedImage.query.filter_by(
+        # First check for scraped images
+        scraped_image = ScrapedImage.query.filter_by(
             seller_id=session['seller_id'],
             product_id=product.id
         ).first()
         
-        # Get the image URL if a selected image exists
-        image_url = '/static/default.jpg'  # Default image
-        if selected_image:
-            image = ExtractedImage.query.get(selected_image.image_id)
-            if image:
-                image_url = url_for('serve_extracted_image', image_id=image.id)
+        # If no scraped image, check for selected images
+        if not scraped_image:
+            selected_image = SelectedImage.query.filter_by(
+                seller_id=session['seller_id'],
+                product_id=product.id
+            ).first()
+            
+            # Get the image URL if a selected image exists
+            image_url = '/static/default.jpg'  # Default image
+            if selected_image:
+                image = ExtractedImage.query.get(selected_image.image_id)
+                if image:
+                    image_url = url_for('serve_extracted_image', image_id=image.id)
+        else:
+            # Use the scraped image
+            image_url = url_for('serve_scraped_image', image_id=scraped_image.id)
         
         formatted_products.append({
             'id': product.id,
@@ -138,6 +148,12 @@ import os
 def upload_pdf():
     if not session.get('logged_in'):
         return redirect('/login')
+        
+    # Clear any existing session data for uploads
+    if 'current_uploaded_pdfs' in session:
+        session.pop('current_uploaded_pdfs', None)
+    if 'excel_path' in session:
+        session.pop('excel_path', None)
         
     if request.method == 'POST':
         pdf_files = request.files.getlist('pdf_file')
@@ -441,50 +457,156 @@ def upload_pdf():
 
 
 @app.route('/upload-excel', methods=['GET', 'POST'])
+@app.route('/upload_excel', methods=['GET', 'POST'])
 def upload_excel():
-    if not session.get('logged_in'):
+    if 'username' not in session or 'seller_id' not in session:
         return redirect('/login')
 
     if request.method == 'POST':
         if 'excel_file' not in request.files:
-            return "No file part"
-        
+            flash('No file part', 'error')
+            return redirect(request.url)
+            
         file = request.files['excel_file']
         
         if file.filename == '':
-            return "No selected file"
+            flash('No selected file', 'error')
+            return redirect(request.url)
             
-        if file and file.filename.endswith(('.xlsx', '.xls')):
-            # Get secure filename and then restore spaces
-            filename = secure_filename(file.filename)
-            filename = filename.replace('_', ' ')  # Restore spaces after secure_filename
-            
-            # Read the Excel file content
-            excel_content = file.read()
-            
-            # Get current user
-            seller = Seller.query.filter_by(username=session['username']).first()
-            if not seller:
-                return 'User not found', 404
-            
-            # Save Excel file to database
-            excel_doc = ExcelDocument(
-                filename=filename,
-                file_content=excel_content,
-                seller_id=seller.id
-            )
-            seller_db.session.add(excel_doc)
-            seller_db.session.commit()
-            
-            # Save file temporarily for processing
-            os.makedirs(EXCEL_FOLDER, exist_ok=True)
-            filepath = os.path.join(EXCEL_FOLDER, filename)
-            with open(filepath, 'wb') as f:
-                f.write(excel_content)
+        if file and file.filename.lower().endswith(('.xlsx', '.xls')):
+            try:
+                # Create necessary directories if they don't exist
+                os.makedirs(EXCEL_FOLDER, exist_ok=True)
+                os.makedirs('downloaded_images', exist_ok=True)
                 
-            session['final_excel_path'] = filepath
-            return redirect(url_for('product_ui'))
-            
+                # Save uploaded file
+                filename = secure_filename(file.filename)
+                excel_path = os.path.join(EXCEL_FOLDER, filename)
+                file.save(excel_path)
+                
+                # Set up output file paths
+                output_excel = os.path.join(EXCEL_FOLDER, 'excel_image_embedded_output.xlsx')
+                output_data_excel = os.path.join(EXCEL_FOLDER, 'excel_image_embedded_output_data.xlsx')
+                
+                # First, read the input Excel to get product details
+                df = pd.read_excel(excel_path)
+                seller_id = session['seller_id']
+                
+                # Create directory for downloaded images if it doesn't exist
+                images_dir = os.path.join('downloaded_images', str(seller_id))
+                os.makedirs(images_dir, exist_ok=True)
+                
+                # First pass: Store or update all products from the original Excel
+                products = {}
+                for _, row in df.iterrows():
+                    # Get values with defaults
+                    part_number = str(row.get('Part Number/SKU', '')).strip()
+                    if not part_number or part_number.lower() in ['nan', 'none', '']:
+                        continue
+                    
+                    # Find or create product
+                    product = Product.query.filter_by(
+                        part_number=part_number,
+                        seller_id=seller_id
+                    ).order_by(Product.id.desc()).first()
+                    
+                    if not product:
+                        product = Product(
+                            seller_id=seller_id,
+                            part_number=part_number,
+                            file_name=row.get('File Name', f"{part_number}.xlsx"),
+                            brand_url=row.get('Brand URL', ''),
+                            description=row.get('Product Description', ''),
+                            brand=row.get('Brand/Manufacturer', ''),
+                            category=row.get('Category', ''),
+                            physical_condition=row.get('Physical Condition', 'New'),
+                            packaging_status=row.get('Packaging Status', 'Original'),
+                            completeness=row.get('Completeness', 'Complete'),
+                            warranty_type=row.get('Warranty Type', 'None')
+                        )
+                        
+                        # Handle price conversion
+                        price_str = str(row.get('Original Price (AED)', '0')).replace('$', '').replace(',', '').strip()
+                        try:
+                            product.original_price = float(price_str) if price_str.replace('.', '', 1).isdigit() else 0.0
+                        except (ValueError, AttributeError):
+                            product.original_price = 0.0
+                        
+                        # Handle quantity conversion
+                        qty_str = str(row.get('Quantity Available', '0')).strip()
+                        try:
+                            product.quantity = int(float(qty_str)) if qty_str.replace('.', '', 1).isdigit() else 0
+                        except (ValueError, AttributeError):
+                            product.quantity = 0
+                            
+                        # Handle warranty days
+                        warranty_days = str(row.get('Warranty Days Remaining', '0')).strip()
+                        try:
+                            product.warranty_days = int(float(warranty_days)) if warranty_days.replace('.', '', 1).isdigit() else 0
+                        except (ValueError, AttributeError):
+                            product.warranty_days = 0
+                        
+                        seller_db.session.add(product)
+                    
+                    # Store product in dictionary for image processing
+                    products[part_number] = product
+                
+                # Commit all product changes before scraping
+                seller_db.session.commit()
+                
+                # Now run the scraper after products are saved
+                scraped_images = run_scraper(excel_path, output_excel, output_data_excel, log_func=print)
+                
+                # Store output path in session
+                session['data_excel_path'] = output_data_excel
+                
+                # Second pass: Process images only after all products are stored
+                for part_number, product in products.items():
+                    if part_number in scraped_images:
+                        for img_data in scraped_images[part_number]:
+                            try:
+                                # Check if image already exists for this product
+                                existing_image = ScrapedImage.query.filter_by(
+                                    part_number=part_number,
+                                    seller_id=seller_id,
+                                    product_id=product.id,
+                                    image_name=img_data['filename']
+                                ).first()
+                                
+                                if not existing_image:
+                                    # Create a new ScrapedImage entry
+                                    scraped_img = ScrapedImage(
+                                        part_number=part_number,
+                                        image_name=img_data['filename'],
+                                        image_data=img_data['data'],
+                                        image_url=img_data['url'],
+                                        seller_id=seller_id,
+                                        product_id=product.id
+                                    )
+                                    seller_db.session.add(scraped_img)
+                                    
+                                    # Save the image to disk as well
+                                    img_path = os.path.join(images_dir, img_data['filename'])
+                                    with open(img_path, 'wb') as f:
+                                        f.write(img_data['data'])
+                                
+                            except Exception as img_error:
+                                app.logger.error(f"Error saving image for {part_number}: {str(img_error)}")
+                                continue
+                
+                # Commit all changes
+                seller_db.session.commit()
+                
+                flash('Excel file processed and products stored successfully!', 'success')
+                return redirect(url_for('product_catalog'))
+                
+            except Exception as e:
+                app.logger.error(f"Error processing Excel file: {str(e)}")
+                flash(f'Error processing Excel file: {str(e)}', 'error')
+                return redirect(request.url)
+    
+    return render_template('upload_excel.html')
+    
     return render_template('upload_excel.html')
 
 
@@ -660,6 +782,12 @@ def select_images():
                 'filename': img.image_filename
             })
         
+        # Create a mapping of PDF names to their most recent product_id
+        product_mapping = {}
+        for img in images:
+            if img.pdf_name not in product_mapping or img.product_id > product_mapping[img.pdf_name]:
+                product_mapping[img.pdf_name] = img.product_id
+        
         # Ensure all PDFs from the current session are in the options, even if they have no images
         for pdf_name in current_pdf_names:
             if pdf_name not in image_options:
@@ -791,52 +919,75 @@ def product_ui():
     if 'username' not in session or 'seller_id' not in session:
         return redirect('/login')
     
+    query = request.args.get('q', '').lower()
+    products = []
+    
     try:
-        # Get products from database for the current seller
-        products = Product.query.filter_by(seller_id=session['seller_id']).all()
-        
-        # Format products for the template
-        formatted_products = []
-        for product in products:
-            # Get the first image from image_options if available
-            image_options = json.loads(product.image_options) if product.image_options else []
-            image_url = image_options[0] if image_options else '/static/default.jpg'
-
-        for _, row in df.iterrows():
-            # Safely get and clean values
-            model = str(row.get(id_col, '')).strip()
-            if not model or model.lower() in ['nan', 'none', '']:
-                continue
-
-            price = str(row.get(price_col, '')).strip()
-            if price.lower() in ['nan', '', 'none']:
-                price = "Price not available"
-
-            brand = str(row.get(brand_col, '')).strip()
-            qty = str(row.get(qty_col, '')).strip()
-
-            # Find the first available image for this product
-            image_path = "/static/default.jpg"
+        # Check if we have Excel-uploaded data
+        data_excel_path = session.get('data_excel_path')
+        if data_excel_path and os.path.exists(data_excel_path):
+            # Process Excel-uploaded data
+            df = pd.read_excel(data_excel_path)
             
-            # Look for image with original model name (with spaces preserved)
-            for ext in ['.jpg', '.jpeg', '.png']:
-                img_filename = f"{model}{ext}"
-                img_path = os.path.join(IMAGE_FOLDER, img_filename)
-                if os.path.exists(img_path):
-                    image_path = f"/{IMAGE_FOLDER}/{img_filename}"
-                    break
+            # Standardize column names
+            id_col = next((col for col in df.columns if 'part' in col.lower() or 'model' in col.lower() or 'id' in col.lower()), df.columns[0])
+            price_col = next((col for col in df.columns if 'price' in col.lower() or 'cost' in col.lower()), None)
+            brand_col = next((col for col in df.columns if 'brand' in col.lower() or 'manufacturer' in col.lower()), None)
+            qty_col = next((col for col in df.columns if 'qty' in col.lower() or 'quantity' in col.lower()), None)
+            
+            for _, row in df.iterrows():
+                # Safely get and clean values
+                model = str(row.get(id_col, '')).strip()
+                if not model or model.lower() in ['nan', 'none', '']:
+                    continue
 
-            # Filter by search query if provided
-            if query and query not in model.lower() and query not in price.lower() and query not in brand.lower():
-                continue
+                price = str(row.get(price_col, '')).strip() if price_col else 'Price not available'
+                if price.lower() in ['nan', '', 'none']:
+                    price = "Price not available"
 
-            products.append({
-                "model": model,  # Keep original model name with spaces
-                "image": image_path,
-                "price": price,
-                "brand": brand,
-                "qty": qty
-            })
+                brand = str(row.get(brand_col, '')).strip() if brand_col else ''
+                qty = str(row.get(qty_col, '')).strip() if qty_col else ''
+
+                # Find the first available image for this product
+                image_path = "/static/default.jpg"
+                
+                # Look for image with original model name (with spaces preserved)
+                for ext in ['.jpg', '.jpeg', '.png']:
+                    img_filename = f"{model}{ext}"
+                    img_path = os.path.join(IMAGE_FOLDER, img_filename)
+                    if os.path.exists(img_path):
+                        image_path = f"/{img_path.replace(os.sep, '/')}"
+                        break
+
+                # Filter by search query if provided
+                if query and query not in model.lower() and query not in price.lower() and (brand and query not in brand.lower()):
+                    continue
+
+                products.append({
+                    "model": model,
+                    "image": image_path,
+                    "price": price,
+                    "brand": brand,
+                    "qty": qty
+                })
+        else:
+            # Fall back to database products
+            db_products = Product.query.filter_by(seller_id=session['seller_id']).all()
+            for product in db_products:
+                # Get the first image from image_options if available
+                image_options = json.loads(product.image_options) if product.image_options else []
+                image_url = image_options[0] if image_options else '/static/default.jpg'
+                
+                products.append({
+                    "model": product.model_number or "No Model Number",
+                    "image": image_url,
+                    "price": f"${product.original_price:.2f}" if product.original_price else "Price not available",
+                    "brand": product.brand or "",
+                    "qty": str(product.quantity) if product.quantity is not None else ""
+                })
+                
+        # Sort products by model name
+        products.sort(key=lambda x: x["model"].lower())
             
     except Exception as e:
         app.logger.error(f"Error in product_ui: {str(e)}")
@@ -939,27 +1090,56 @@ def download_pdf(product_id):
 def serve_extracted_image(image_id):
     """Serve an image directly from the database using its ID."""
     try:
-        # Get the image from the database
         image = ExtractedImage.query.get_or_404(image_id)
         
         # Check if the image belongs to the current seller
-        if image.seller_id != session.get('seller_id'):
-            return "Unauthorized", 403
+        if 'seller_id' in session and image.seller_id == session['seller_id']:
+            response = make_response(image.image_content)
+            response.headers['Content-Type'] = 'image/jpeg'  # Default to JPEG
             
-        # Determine the MIME type based on the file extension
-        mime_type = 'image/jpeg'  # default
-        if image.image_filename.lower().endswith('.png'):
-            mime_type = 'image/png'
+            # Set appropriate content type based on file extension if available
+            if image.image_filename.lower().endswith('.png'):
+                response.headers['Content-Type'] = 'image/png'
+            elif image.image_filename.lower().endswith('.gif'):
+                response.headers['Content-Type'] = 'image/gif'
+            elif image.image_filename.lower().endswith('.webp'):
+                response.headers['Content-Type'] = 'image/webp'
+                
+            return response
+        else:
+            return 'Unauthorized', 403
             
-        # Serve the image content with the appropriate MIME type
-        response = make_response(image.image_content)
-        response.headers['Content-Type'] = mime_type
-        response.headers['Content-Disposition'] = f'inline; filename={image.image_filename}'
-        return response
-        
     except Exception as e:
-        print(f"Error serving image {image_id}: {str(e)}")
-        return "Error serving image", 500
+        app.logger.error(f"Error serving extracted image {image_id}: {str(e)}")
+        return 'Image not found', 404
+
+@app.route('/serve-scraped-image/<int:image_id>')
+def serve_scraped_image(image_id):
+    """Serve a scraped image directly from the database using its ID."""
+    try:
+        image = ScrapedImage.query.get_or_404(image_id)
+        
+        # Check if the image belongs to the current seller
+        if 'seller_id' in session and image.seller_id == session['seller_id']:
+            response = make_response(image.image_data)
+            
+            # Determine content type based on file extension
+            if image.image_name.lower().endswith('.png'):
+                response.headers['Content-Type'] = 'image/png'
+            elif image.image_name.lower().endswith('.gif'):
+                response.headers['Content-Type'] = 'image/gif'
+            elif image.image_name.lower().endswith('.webp'):
+                response.headers['Content-Type'] = 'image/webp'
+            else:  # Default to JPEG
+                response.headers['Content-Type'] = 'image/jpeg'
+                
+            return response
+        else:
+            return 'Unauthorized', 403
+            
+    except Exception as e:
+        app.logger.error(f"Error serving scraped image {image_id}: {str(e)}")
+        return 'Image not found', 404
 
 @app.route('/uploads/<path:filename>')
 def download_file(filename):

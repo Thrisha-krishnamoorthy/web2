@@ -9,16 +9,30 @@ class Seller(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
-    pdf_documents = db.relationship('PDFDocument', backref='seller', lazy=True, cascade='all, delete-orphan')
-    excel_documents = db.relationship('ExcelDocument', backref='seller', lazy=True, cascade='all, delete-orphan')
+    
+    # Relationships with cascade delete
+    pdf_documents = db.relationship('PDFDocument', back_populates='seller', lazy=True, 
+                                  cascade='all, delete-orphan')
+    excel_documents = db.relationship('ExcelDocument', back_populates='seller', lazy=True, 
+                                    cascade='all, delete-orphan')
+    products = db.relationship('Product', back_populates='seller', lazy=True, 
+                             cascade='all, delete-orphan')
+    extracted_images = db.relationship('ExtractedImage', back_populates='seller', lazy=True, 
+                                     cascade='all, delete-orphan')
+    selected_images = db.relationship('SelectedImage', back_populates='seller', lazy=True, 
+                                    cascade='all, delete-orphan')
 
 class PDFDocument(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
-    file_content = db.Column(db.LargeBinary, nullable=False)  # Changed from file_path to store actual file content
+    file_content = db.Column(db.LargeBinary, nullable=False)
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
-    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=True)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id', ondelete='CASCADE'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id', ondelete='SET NULL'), nullable=True)
+    
+    # Relationships
+    seller = db.relationship('Seller', back_populates='pdf_documents')
+    product = db.relationship('Product', backref=db.backref('pdf_documents', lazy=True))
 
     def __repr__(self):
         return f"<PDFDocument {self.filename}>"
@@ -26,9 +40,12 @@ class PDFDocument(db.Model):
 class ExcelDocument(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
-    file_content = db.Column(db.LargeBinary, nullable=False)  # Changed from file_path to store actual file content
+    file_content = db.Column(db.LargeBinary, nullable=False)
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
-    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id', ondelete='CASCADE'), nullable=False)
+    
+    # Relationships
+    seller = db.relationship('Seller', back_populates='excel_documents')
 
     def __repr__(self):
         return f"<ExcelDocument {self.filename}>"
@@ -49,10 +66,17 @@ class Product(db.Model):
     completeness = db.Column(db.String)
     warranty_days = db.Column(db.Integer)
     warranty_type = db.Column(db.String)
-    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id', ondelete='CASCADE'), nullable=False)
     pdf_path = db.Column(db.String, nullable=True)
     image_options = db.Column(db.Text, nullable=True)  # Stored as JSON string
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    seller = db.relationship('Seller', back_populates='products')
+    extracted_images = db.relationship('ExtractedImage', back_populates='product', 
+                                     cascade='all, delete-orphan')
+    selected_images = db.relationship('SelectedImage', back_populates='product',
+                                    cascade='all, delete-orphan')
 
     def __repr__(self):
         return f"<Product {self.part_number} - {self.file_name}>"
@@ -64,13 +88,15 @@ class ExtractedImage(db.Model):
     image_filename = db.Column(db.String(255), nullable=False)
     image_content = db.Column(db.LargeBinary, nullable=False)
     image_url = db.Column(db.String(500), nullable=False)
-    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id', ondelete='CASCADE'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id', ondelete='CASCADE'), nullable=True)
     
     # Relationships
-    product = db.relationship('Product', backref=db.backref('extracted_images', lazy=True))
-    seller = db.relationship('Seller', backref=db.backref('extracted_images', lazy=True))
+    product = db.relationship('Product', back_populates='extracted_images')
+    seller = db.relationship('Seller', back_populates='extracted_images')
+    selected_images = db.relationship('SelectedImage', back_populates='image',
+                                    cascade='all, delete-orphan')
     
     def __repr__(self):
         return f"<ExtractedImage {self.image_filename} from {self.pdf_name}>"
@@ -78,16 +104,34 @@ class ExtractedImage(db.Model):
 
 class SelectedImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    image_id = db.Column(db.Integer, db.ForeignKey('extracted_image.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=True)
-    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
+    image_id = db.Column(db.Integer, db.ForeignKey('extracted_image.id', ondelete='CASCADE'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id', ondelete='CASCADE'), nullable=True)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id', ondelete='CASCADE'), nullable=False)
     is_primary = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    image = db.relationship('ExtractedImage', backref=db.backref('selections', lazy=True))
-    product = db.relationship('Product', backref=db.backref('selected_images', lazy=True))
-    seller = db.relationship('Seller', backref=db.backref('selected_images', lazy=True))
+    image = db.relationship('ExtractedImage', back_populates='selected_images')
+    product = db.relationship('Product', back_populates='selected_images')
+    seller = db.relationship('Seller', back_populates='selected_images')
     
     def __repr__(self):
         return f"<SelectedImage {self.id} - {'Primary' if self.is_primary else 'Secondary'}>"
+
+
+class ScrapedImage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    part_number = db.Column(db.String(100), nullable=False, index=True)
+    image_name = db.Column(db.String(255), nullable=False)
+    image_data = db.Column(db.LargeBinary, nullable=False)
+    image_url = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id', ondelete='CASCADE'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id', ondelete='CASCADE'), nullable=True)
+    
+    # Relationships
+    seller = db.relationship('Seller', backref=db.backref('scraped_images', lazy=True, cascade='all, delete-orphan'))
+    product = db.relationship('Product', backref=db.backref('scraped_images', lazy=True, cascade='all, delete-orphan'))
+    
+    def __repr__(self):
+        return f"<ScrapedImage {self.image_name} for {self.part_number}>"

@@ -3,12 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Login</title>
-
+  <title>Welcome seller</title>
+  <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>" type="image/svg+xml">
+  
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
+    :root {
+      --primary: #00bcd4;
+      --secondary: #7b1fa2;
+      --hover-primary: #0097a7;
+      --hover-secondary: #6a1b9a;
+      --text-dark: #1b2e4b;
+      --text-light: #6c757d;
+      --bg-gradient: linear-gradient(135deg, #e0f7fa 0%, #fce4ec 100%);
+      --card-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+      --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -17,22 +32,124 @@
 
     body {
       font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #e0f7fa, #fce4ec);
-      height: 100vh;
+      background: var(--bg-gradient);
+      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* Animated Background Elements */
+    .bg-elements {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .bg-element {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.1;
+      filter: blur(40px);
+      animation: float 15s infinite ease-in-out;
+    }
+
+    .bg-1 {
+      width: 300px;
+      height: 300px;
+      background: var(--primary);
+      top: 10%;
+      left: 10%;
+      animation-delay: 0s;
+    }
+
+    .bg-2 {
+      width: 400px;
+      height: 400px;
+      background: var(--secondary);
+      bottom: 5%;
+      right: 10%;
+      animation-delay: 2s;
+    }
+
+    .bg-3 {
+      width: 250px;
+      height: 250px;
+      background: #ff6b6b;
+      top: 60%;
+      left: 20%;
+      animation-delay: 4s;
     }
 
     .login-container {
-      background: #ffffff;
-      padding: 48px 40px;
-      border-radius: 20px;
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 50px 45px;
+      border-radius: 24px;
+      box-shadow: var(--card-shadow);
       text-align: center;
       width: 100%;
-      max-width: 420px;
-      transition: transform 0.3s ease;
+      max-width: 440px;
+      transform-style: preserve-3d;
+      perspective: 1000px;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .login-container::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      top: 0;
+      left: 0;
+      border-radius: 3px;
+      z-index: 10;
+      animation: borderTrain 4s linear infinite;
+      transform-origin: left;
+    }
+
+    @keyframes borderTrain {
+      0%   { transform: scaleX(0); transform-origin: left; width: 0%; height: 3px; top: 0; left: 0; }
+      25%  { transform: scaleX(1); transform-origin: left; width: 100%; height: 3px; top: 0; left: 0; }
+      26%  { transform: scaleY(0); transform-origin: top; width: 3px; height: 0%; top: 0; right: 0; left: auto; }
+      50%  { transform: scaleY(1); transform-origin: top; width: 3px; height: 100%; top: 0; right: 0; left: auto; }
+      51%  { transform: scaleX(0); transform-origin: right; width: 0%; height: 3px; top: auto; bottom: 0; right: 0; left: auto; }
+      75%  { transform: scaleX(1); transform-origin: right; width: 100%; height: 3px; top: auto; bottom: 0; right: 0; left: auto; }
+      76%  { transform: scaleY(0); transform-origin: bottom; width: 3px; height: 0%; top: auto; bottom: 0; left: 0; right: auto; }
+      100% { transform: scaleY(1); transform-origin: bottom; width: 3px; height: 100%; top: auto; bottom: 0; left: 0; right: auto; }
+    }
+
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+      );
+      transform: rotate(45deg);
+      transition: 0.6s;
+      z-index: -1;
+    }
+
+    .login-container:hover::before {
+      animation: shine 1.5s;
     }
 
     .img-container {
@@ -42,96 +159,302 @@
       perspective: 1000px;
     }
 
-    .webscrap-img {
-      width: 100px;
-      height: 100px;
-      border-radius: 20px;
-      padding: 12px;
-      background: #ffffff;
-      transition: transform 0.6s ease, box-shadow 0.3s;
-      box-shadow: 0 10px 25px rgba(66, 133, 244, 0.1);
+    .logo-wrapper {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transform-style: preserve-3d;
+      transition: var(--transition);
     }
 
-    .webscrap-img:hover {
-      transform: scale(1.1) rotateX(10deg) rotateY(-10deg);
-      box-shadow: 0 20px 40px rgba(66, 133, 244, 0.35);
-      background: #f0faff;
-      cursor: pointer;
+    .logo-wrapper:hover {
+      transform: rotateY(15deg) rotateX(15deg);
+    }
+
+    .logo-wrapper::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      transform: translateZ(-10px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .webscrap-img {
+      width: 70%;
+      height: auto;
+      filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.2));
+      transition: var(--transition);
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-wrapper:hover .webscrap-img {
+      transform: translateZ(20px) scale(1.1);
     }
 
     h2 {
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 25px;
-      color: #1b2e4b;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-dark);
+      position: relative;
+      display: inline-block;
+    }
+
+    h2::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 3px;
+    }
+
+    .subtitle {
+      color: var(--text-light);
+      margin-bottom: 30px;
+      font-size: 15px;
+      font-weight: 400;
+    }
+
+    .form-group {
+      position: relative;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .form-group i {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-light);
+      transition: var(--transition);
     }
 
     form input {
       width: 100%;
-      padding: 14px 16px;
-      margin-bottom: 20px;
-      border-radius: 10px;
-      border: 1px solid #cfd8dc;
+      padding: 16px 16px 16px 48px;
+      margin-bottom: 0;
+      border-radius: 12px;
+      border: 2px solid #e9ecef;
       font-size: 15px;
-      transition: border 0.3s, box-shadow 0.3s;
+      font-weight: 400;
+      color: var(--text-dark);
+      background-color: #f8f9fa;
+      transition: var(--transition);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
     }
 
     form input:focus {
       outline: none;
-      border-color: #00bcd4;
-      box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.2);
+      border-color: var(--primary);
+      background-color: white;
+      box-shadow: 0 5px 20px rgba(0, 188, 212, 0.1);
+    }
+
+    form input:focus + i {
+      color: var(--primary);
     }
 
     button {
       width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #00bcd4, #7b1fa2);
+      padding: 16px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
       font-size: 16px;
       font-weight: 600;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       cursor: pointer;
-      transition: transform 0.2s, background 0.3s;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      margin-top: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+      );
+      transition: 0.5s;
     }
 
     button:hover {
-      background: linear-gradient(135deg, #0097a7, #6a1b9a);
-      transform: scale(1.04);
+      background: linear-gradient(135deg, var(--hover-primary), var(--hover-secondary));
+      transform: translateY(-2px);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
     }
 
-    @media (max-width: 480px) {
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .forgot-password {
+      display: block;
+      margin-top: 20px;
+      color: var(--text-light);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.3s;
+    }
+
+    .forgot-password:hover {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+
+    /* Animations */
+    @keyframes float {
+      0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+      33% { transform: translateY(-20px) translateX(10px) scale(1.05); }
+      66% { transform: translateY(10px) translateX(-10px) scale(0.95); }
+    }
+
+    @keyframes shine {
+      0% { left: -100%; }
+      20% { left: 100%; }
+      100% { left: 100%; }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 576px) {
       .login-container {
-        padding: 36px 24px;
+        padding: 40px 25px;
+        border-radius: 18px;
       }
+      
+      h2 {
+        font-size: 24px;
+      }
+      
+      .subtitle {
+        font-size: 14px;
+      }
+    }
+
+    /* Loading Animation */
+    .btn-loading {
+      position: relative;
+      pointer-events: none;
+      color: transparent !important;
+    }
+
+    .btn-loading::after {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      top: 50%;
+      left: 50%;
+      margin: -12px 0 0 -12px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
+  <!-- Animated Background Elements -->
+  <div class="bg-elements">
+    <div class="bg-element bg-1"></div>
+    <div class="bg-element bg-2"></div>
+    <div class="bg-element bg-3"></div>
+  </div>
+
   <div class="login-container">
     <div class="img-container">
-      <!-- Webscrap SVG icon -->
-      <svg class="webscrap-img" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="7" y="15" width="54" height="43" rx="7" fill="#eff4fa" stroke="#32495d" stroke-width="2.8"/>
-        <rect x="18" y="28" width="11" height="11" rx="2.5" fill="#bed0e3" stroke="#32495d" stroke-width="2"/>
-        <rect x="33" y="28" width="11" height="11" rx="2.5" fill="#bed0e3" stroke="#32495d" stroke-width="2"/>
-        <rect x="18" y="43" width="11" height="11" rx="2.5" fill="#bed0e3" stroke="#32495d" stroke-width="2"/>
-        <rect x="33" y="43" width="11" height="11" rx="2.5" fill="#bed0e3" stroke="#32495d" stroke-width="2"/>
-        <circle cx="52" cy="53" r="18" fill="#bed0e3" stroke="#32495d" stroke-width="2.5"/>
-        <circle cx="52" cy="53" r="10" fill="#eff4fa" stroke="#32495d" stroke-width="2"/>
-        <rect x="62" y="65" width="9" height="22" rx="4.5" transform="rotate(-42 62 65)" fill="#bed0e3" stroke="#32495d" stroke-width="2"/>
-      </svg>
+      <div class="logo-wrapper">
+        <!-- Webscrap SVG icon -->
+        <svg class="webscrap-img" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="7" y="15" width="54" height="43" rx="7" fill="#ffffff" stroke="#ffffff" stroke-width="2.8"/>
+          <rect x="18" y="28" width="11" height="11" rx="2.5" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+          <rect x="33" y="28" width="11" height="11" rx="2.5" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+          <rect x="18" y="43" width="11" height="11" rx="2.5" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+          <rect x="33" y="43" width="11" height="11" rx="2.5" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+          <circle cx="52" cy="53" r="18" fill="#ffffff" stroke="#ffffff" stroke-width="2.5"/>
+          <circle cx="52" cy="53" r="10" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+          <rect x="62" y="65" width="9" height="22" rx="4.5" transform="rotate(-42 62 65)" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+        </svg>
+      </div>
     </div>
 
-    <h2>🔐 Admin Login</h2>
+    <h2>Welcome Seller</h2>
+    <p class="subtitle">Unstock. Unlock. Unleash Your Profits.</p>
 
-    <form action="/auth" method="post">
-      <input type="text" name="username" placeholder="Username" required />
-      <input type="password" name="password" placeholder="Password" required />
+    <form action="/auth" method="post" id="loginForm">
+      <div class="form-group">
+        <i class="fas fa-user"></i>
+        <input type="text" name="username" placeholder="Username" required />
+      </div>
       
-      <button type="submit">Login</button>
+      <div class="form-group">
+        <i class="fas fa-lock"></i>
+        <input type="password" name="password" placeholder="Password" required />
+      </div>
+      
+      <button type="submit" id="loginButton">
+        <span class="button-text">Sign In</span>
+      </button>
+      
+      
     </form>
   </div>
+
+  <script>
+    // Add loading state to login button
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      const button = document.getElementById('loginButton');
+      button.classList.add('btn-loading');
+      button.innerHTML = '<span class="button-text">Signing In...</span>';
+      
+      // Optional: Add a small delay to show the loading state
+      setTimeout(() => {
+        // The form will submit normally after this
+      }, 300);
+    });
+
+    // Add floating animation to the login container on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = document.querySelector('.login-container');
+      container.style.opacity = '0';
+      container.style.transform = 'translateY(20px)';
+      
+      setTimeout(() => {
+        container.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        container.style.opacity = '1';
+        container.style.transform = 'translateY(0)';
+      }, 100);
+    });
+  </script>
 </body>
 </html>
 

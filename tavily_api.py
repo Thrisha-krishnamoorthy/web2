@@ -158,6 +158,9 @@ def download_image_for_excel(url):
 def run_scraper(input_file, output_file, data_excel_file, log_func=None):
     df = pd.read_excel(input_file)
     df.columns = df.columns.str.strip()
+    
+    # Dictionary to store scraped image data
+    scraped_images = {}
 
     # Standardize column names
     col_map = {
@@ -226,15 +229,54 @@ def run_scraper(input_file, output_file, data_excel_file, log_func=None):
 
                 img_data = download_image_for_excel(img_url)
                 img_data.seek(0)
-                img_pil = Image.open(img_data).convert("RGB")
+                img_pil = Image.open(img_data)
+                
+                # Convert to RGB if the image has an alpha channel
+                if img_pil.mode in ('RGBA', 'LA') or (img_pil.mode == 'P' and 'transparency' in img_pil.info):
+                    img_pil = img_pil.convert('RGB')
+                
                 img_pil.thumbnail((500, 500))
                 
                 # Create the downloaded_images directory if it doesn't exist
                 os.makedirs("downloaded_images", exist_ok=True)
+                
+                # Determine file extension from URL or content type
+                file_ext = 'jpg'  # default
+                if img_url.lower().endswith('.webp'):
+                    file_ext = 'webp'
+                elif img_url.lower().endswith(('.png', '.jpeg', '.gif')):
+                    file_ext = img_url.lower().rsplit('.', 1)[1]
+                
                 # Save the image with the original filename (spaces preserved)
-                filename = f"{part.replace('/', '_')}.jpg"
+                filename = f"{part.replace('/', '_')}.{file_ext}"
                 save_path = os.path.join("downloaded_images", filename)
-                img_pil.save(save_path, format="JPEG", quality=90)
+                
+                # Save in the appropriate format
+                format_map = {
+                    'jpg': 'JPEG',
+                    'jpeg': 'JPEG',
+                    'png': 'PNG',
+                    'webp': 'WEBP',
+                    'gif': 'GIF'
+                }
+                
+                # Default to JPEG if format not recognized
+                save_format = format_map.get(file_ext.lower(), 'JPEG')
+                img_pil.save(save_path, format=save_format, quality=90)
+                
+                # Store image data for database
+                if part not in scraped_images:
+                    scraped_images[part] = []
+                    
+                # Read the saved file to get the final binary data
+                with open(save_path, 'rb') as f:
+                    img_binary = f.read()
+                    
+                scraped_images[part].append({
+                    'url': img_url,
+                    'data': img_binary,  # Use the actual saved binary data
+                    'filename': filename
+                })
 
                 img_data.seek(0)
                 xl_img = XLImage(img_data)
@@ -256,4 +298,17 @@ def run_scraper(input_file, output_file, data_excel_file, log_func=None):
     simplified_df['Description'] = df[col_map['desc_col']]
     simplified_df['Price'] = df[col_map['price_col']]
     simplified_df['Qty'] = df[col_map['qty_col']]
+    
+    # Add image URLs to the simplified data
+    image_urls = []
+    for part in simplified_df['Model Number']:
+        if part in scraped_images and scraped_images[part]:
+            image_urls.append(scraped_images[part][0]['url'])
+        else:
+            image_urls.append('')
+    simplified_df['Image URL'] = image_urls
+    
     simplified_df.to_excel(data_excel_file, index=False)
+    
+    # Return the scraped images data
+    return scraped_images
