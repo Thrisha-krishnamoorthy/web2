@@ -504,6 +504,18 @@ class Buyer(db.Model):
     def __repr__(self):
         return f'<Buyer {self.username}>'
 
+@app.route('/payment-decision')
+def payment_decision():
+    return render_template('payment_decision.html')
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/unsuccessful-payment')
+def unsuccessful_payment():
+    return render_template('unsuccessful_payment.html')
+
 if __name__ == '__main__':
     with app.app_context():
         # Create database tables if they don't exist

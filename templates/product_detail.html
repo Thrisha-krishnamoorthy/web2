@@ -325,11 +325,11 @@
                 </div>
                 {% endif %}
                 
-                <!-- Enquire Button -->
+                <!-- Buy Now Button -->
                 <div class="product-actions" style="margin: 30px 0; text-align: center;">
-                    <button class="btn" style="background-color: #e74c3c; color: white; padding: 12px 24px; font-size: 16px; border-radius: 4px; border: none; cursor: pointer;">
-                        <i class="fas fa-envelope"></i> Enquire About This Product
-                    </button>
+                    <a href="{{ url_for('payment_decision') }}" class="btn" style="background-color: #e74c3c; color: white; padding: 12px 24px; font-size: 16px; border-radius: 4px; border: none; cursor: pointer; text-decoration: none; display: inline-block;">
+                        <i class="fas fa-shopping-cart"></i> BUY NOW
+                    </a>
                 </div>
             </div>
         </div>
