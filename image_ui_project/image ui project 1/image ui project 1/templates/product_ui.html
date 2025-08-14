@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Catalog</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            padding: 20px;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .nav-bar {
+            margin-top: 10px;
+        }
+
+        .nav-bar a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .nav-bar a:hover {
+            text-decoration: underline;
+        }
+
+        .search-box {
+            margin-top: 10px;
+        }
+
+        .search-box input[type="text"] {
+            padding: 8px;
+            width: 250px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .product-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px;
+            width: 220px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .product-card:hover {
+            transform: scale(1.03);
+        }
+
+        .product-card img {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+
+        .product-card h3 {
+            font-size: 16px;
+            margin: 10px 0 5px;
+        }
+
+        .product-card .price {
+            font-size: 14px;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <h1>📦 Product Catalog</h1>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search product...">
+        </div>
+
+        <div class="nav-bar">
+            {% if logged_in %}
+                <a href="/upload-pdf">📄 Upload PDF</a> |
+                <a href="/upload-excel">📊 Upload Excel</a> |
+                <a href="/upload-both">🧾 Upload Both</a> |
+                <a href="/logout">🚪 Logout</a>
+            {% else %}
+                <a href="/login">🔒 Admin Login</a>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <div class="product-container" id="productContainer">
+        {% for product in products %}
+            <a href="{{ url_for('product_detail', model=product['model']) }}">
+                <div class="product-card">
+                    <img src="{{ product['image'] }}"
+                         onerror="this.onerror=null;this.src='/static/default.jpg';" alt="Product Image">
+                    <h3>{{ product['brand'] }} - {{ product['model'] }}</h3>
+                    <div class="price">
+                        Qty: {{ product['qty'] or 'N/A' }}
+                    </div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const productCards = document.querySelectorAll('.product-card');
+
+        searchInput.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase();
+            productCards.forEach(card => {
+                const modelText = card.querySelector('h3').innerText.toLowerCase();
+                const qtyText = card.querySelector('.price').innerText.toLowerCase();
+                if (modelText.includes(query) || qtyText.includes(query)) {
+                    card.parentElement.style.display = 'inline-block';
+                } else {
+                    card.parentElement.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

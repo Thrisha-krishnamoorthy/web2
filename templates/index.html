@@ -33,8 +33,19 @@
 
       <ul class="navbar-icons">
         <li><i class="fa fa-bell"></i></li>
-        <li><i class="fa fa-user"></i> <span>Sign In</span></li>
-        <li><i class="fa fa-shopping-cart"></i></li>
+        {% if 'buyer_id' in session %}
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fa fa-user"></i> <span>{{ session['username'] }}</span>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="/buyer/logout">Logout</a></li>
+            </ul>
+          </li>
+        {% else %}
+          <li><a href="/buyer/login"><i class="fa fa-user"></i> <span>Sign In</span></a></li>
+        {% endif %}
+        <li><a href="#"><i class="fa fa-shopping-cart"></i></a></li>
         <li class="sidebar-toggle" id="sidebarToggle"><i class="fa fa-bars"></i></li>
       </ul>
     </div>

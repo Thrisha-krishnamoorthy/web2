@@ -1,10 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, make_response, jsonify, session, flash
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import datetime
+from functools import wraps
 
 # Initialize Flask app
 app = Flask(__name__)
+app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
 
 # Configure SQLite database
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -40,6 +43,18 @@ class Product(db.Model):
     pdf_path = db.Column(db.String, nullable=True)
     image_options = db.Column(db.Text, nullable=True)  # Stored as JSON string
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class PDFDocument(db.Model):
+    __tablename__ = 'pdf_document'
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    file_content = db.Column(db.LargeBinary, nullable=False)
+    upload_date = db.Column(db.DateTime, default=datetime.utcnow)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=True)
+
+    def __repr__(self):
+        return f"<PDFDocument {self.filename}>"
 
 class ExtractedImage(db.Model):
     __tablename__ = 'extracted_image'
@@ -109,11 +124,69 @@ def home():
     
     return render_template('index.html', categories=category_data)
 
+@app.route('/product-detail/<int:product_id>')
+def product_detail(product_id):
+    try:
+        # Get the product by ID
+        product = Product.query.get_or_404(product_id)
+        
+        # Get all selected images for this product
+        selected_images = db.session.query(ExtractedImage).join(
+            SelectedImage,
+            SelectedImage.image_id == ExtractedImage.id
+        ).filter(
+            SelectedImage.product_id == product_id
+        ).all()
+        
+        # Get image URLs for the carousel
+        image_urls = [url_for('serve_extracted_image', image_id=img.id) for img in selected_images]
+        
+        # If no images, use default
+        if not image_urls:
+            image_urls = [url_for('static', filename='images/default-product.jpg')]
+        
+        # Format product data for the template
+        product_data = {
+            'id': product.id,
+            'name': product.part_number or 'N/A',
+            'part_number': product.part_number or 'N/A',
+            'title': product.part_number or 'No Part Number',
+            'brand': product.brand or 'No Brand',
+            'description': product.description or 'No description available',
+            'price': product.original_price or 0,
+            'quantity': product.quantity if product.quantity is not None else 0,
+            'category': product.category or 'Uncategorized',
+            'condition': product.physical_condition or 'Not specified',
+            'packaging_status': product.packaging_status or 'Not specified',
+            'completeness': product.completeness or 'Not specified',
+            'warranty_days': product.warranty_days or 0,
+            'warranty_type': product.warranty_type or 'Not specified',
+            'created_at': product.created_at.strftime('%Y-%m-%d') if product.created_at else 'N/A',
+            'image_urls': image_urls,
+            'additional_info': {
+                'Brand URL': product.brand_url or 'N/A',
+                'PDF Available': 'Yes' if product.pdf_path else 'No',
+                'Created At': product.created_at.strftime('%Y-%m-%d') if product.created_at else 'N/A'
+            }
+        }
+        
+        return render_template('product_detail.html', product=product_data)
+        
+    except Exception as e:
+        print(f"Error in product_detail route: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return f"An error occurred: {str(e)}", 500
+
 @app.route('/product')
 def product_page():
     try:
-        # Get category filter from query parameters
+        # Get filter parameters from query parameters
         category_filter = request.args.get('category')
+        brand_filter = request.args.get('brand')
+        condition_filter = request.args.get('condition')
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
         
         # Query all products with their selected images
         products_data = []
@@ -124,36 +197,75 @@ def product_page():
             db.func.count(Product.id).label('product_count')
         ).group_by(Product.category).all()
         
-        # Build the base query
-        query = db.session.query(
-            Product,
-            SelectedImage,
-            ExtractedImage
-        ).outerjoin(
-            SelectedImage,
-            db.and_(
-                SelectedImage.product_id == Product.id,
-                db.or_(
-                    SelectedImage.is_primary == True,
-                    SelectedImage.is_primary.is_(None)  # Include if is_primary is not set
-                )
-            )
-        ).outerjoin(
-            ExtractedImage,
-            ExtractedImage.id == SelectedImage.image_id
-        )
+        # Get all brands for the brand filter
+        brands = db.session.query(
+            Product.brand,
+            db.func.count(Product.id).label('product_count')
+        ).group_by(Product.brand).all()
         
-        # Apply category filter if specified
+        # Get all conditions for the condition filter
+        conditions = db.session.query(
+            Product.physical_condition,
+            db.func.count(Product.id).label('product_count')
+        ).group_by(Product.physical_condition).all()
+        
+        # Get price range for the price filter
+        price_range = db.session.query(
+            db.func.min(Product.original_price).label('min_price'),
+            db.func.max(Product.original_price).label('max_price')
+        ).first()
+        
+        # First, get filtered product IDs
+        product_query = db.session.query(Product.id)
+        
+        # Apply filters to the product query
         if category_filter:
-            query = query.filter(Product.category == category_filter)
+            product_query = product_query.filter(Product.category == category_filter)
+        if brand_filter:
+            product_query = product_query.filter(Product.brand == brand_filter)
+        if condition_filter:
+            product_query = product_query.filter(Product.physical_condition == condition_filter)
+        if min_price is not None:
+            product_query = product_query.filter(Product.original_price >= min_price)
+        if max_price is not None:
+            product_query = product_query.filter(Product.original_price <= max_price)
+            
+        # Get the filtered product IDs
+        filtered_product_ids = [p[0] for p in product_query.all()]
         
-        # Execute the query and get all results
-        results = query.all()
+        if not filtered_product_ids:
+            print("No products match the filter criteria")
+            results = []
+        else:
+            # Now get the products with their images
+            query = db.session.query(
+                Product,
+                SelectedImage,
+                ExtractedImage
+            ).filter(Product.id.in_(filtered_product_ids))
+            
+            # Left outer join with SelectedImage and ExtractedImage
+            query = query.outerjoin(
+                SelectedImage,
+                db.and_(
+                    SelectedImage.product_id == Product.id,
+                    db.or_(
+                        SelectedImage.is_primary == True,
+                        SelectedImage.is_primary.is_(None)  # Include if is_primary is not set
+                    )
+                )
+            ).outerjoin(
+                ExtractedImage,
+                ExtractedImage.id == SelectedImage.image_id
+            )
+            
+            # Execute the query and get all results
+            results = query.all()
         
         if not results:
-            print("No products found in the database")
+            print("No products found matching the filters")
         else:
-            print(f"Found {len(results)} product records")
+            print(f"Found {len(results)} product records matching the filters")
         
         # Dictionary to store products by ID
         products_dict = {}
@@ -216,8 +328,17 @@ def product_page():
         
         return render_template('product_page.html', 
                            products=products_data,
-                           category=category_filter,
-                           categories=categories)
+                           categories=categories,
+                           selected_category=category_filter,
+                           brands=brands,
+                           conditions=conditions,
+                           price_range=price_range,
+                           current_filters={
+                               'brand': brand_filter,
+                               'condition': condition_filter,
+                               'min_price': min_price,
+                               'max_price': max_price
+                           })
         
     except Exception as e:
         print(f"Error in product_page route: {str(e)}")
@@ -254,6 +375,134 @@ def serve_extracted_image(image_id):
         # If no image content or URL is available, return a 404
         from flask import abort
         abort(404)
+
+@app.route('/download-pdf/<int:product_id>')
+def download_pdf(product_id):
+    """Serve the PDF file associated with a product."""
+    try:
+        # Get the product first to ensure it exists
+        product = Product.query.get_or_404(product_id)
+        
+        # Get the PDF document for this product
+        pdf_doc = PDFDocument.query.filter_by(
+            product_id=product_id
+        ).first()
+        
+        # If not found by product_id, try to find by filename
+        if not pdf_doc and product.pdf_path:
+            pdf_doc = PDFDocument.query.filter(
+                (PDFDocument.filename == product.pdf_path) |
+                (PDFDocument.filename == os.path.basename(product.pdf_path))
+            ).first()
+        
+        if not pdf_doc:
+            return "PDF not found. No PDF document is associated with this product.", 404
+            
+        if not pdf_doc.file_content:
+            return "PDF content is empty or corrupted.", 500
+            
+        # Debug information
+        print(f"Serving PDF: {pdf_doc.filename}, Size: {len(pdf_doc.file_content)} bytes")
+        
+        # Create a response with the PDF content
+        response = make_response(pdf_doc.file_content)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename="{os.path.basename(pdf_doc.filename)}"'
+        return response
+        
+    except Exception as e:
+        import traceback
+        print(f"Error serving PDF for product {product_id}:")
+        traceback.print_exc()
+        return f"An error occurred while processing your request: {str(e)}", 500
+
+# Buyer authentication routes
+
+@app.route('/buyer/register', methods=['GET', 'POST'])
+def buyer_register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+            
+        # Check if username already exists
+        existing_buyer = db.session.execute(
+            db.select(Buyer).filter_by(username=username)
+        ).scalar_one_or_none()
+        
+        if existing_buyer:
+            return jsonify({'error': 'Username already exists'}), 400
+            
+        # Create new buyer
+        new_buyer = Buyer(username=username)
+        new_buyer.set_password(password)
+        
+        db.session.add(new_buyer)
+        db.session.commit()
+        
+        return jsonify({'message': 'Buyer registered successfully'}), 201
+    
+    return render_template('buyer_register.html')
+
+@app.route('/buyer/login', methods=['GET', 'POST'])
+def buyer_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+            
+        # Find buyer by username
+        buyer = db.session.execute(
+            db.select(Buyer).filter_by(username=username)
+        ).scalar_one_or_none()
+        
+        if not buyer or not buyer.check_password(password):
+            return jsonify({'error': 'Invalid username or password'}), 401
+            
+        # Set session
+        session['buyer_id'] = buyer.id
+        session['username'] = buyer.username
+        session['is_buyer'] = True
+        
+        return jsonify({'message': 'Login successful', 'buyer_id': buyer.id}), 200
+    
+    return render_template('buyer_login.html')
+
+@app.route('/buyer/logout')
+def buyer_logout():
+    session.pop('buyer_id', None)
+    session.pop('username', None)
+    session.pop('is_buyer', None)
+    return redirect(url_for('home'))
+
+def buyer_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'buyer_id' not in session:
+            return redirect(url_for('buyer_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Add Buyer model
+class Buyer(db.Model):
+    __tablename__ = 'buyer'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f'<Buyer {self.username}>'
 
 if __name__ == '__main__':
     with app.app_context():

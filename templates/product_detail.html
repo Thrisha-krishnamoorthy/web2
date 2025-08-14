@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} - Product Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            background: white;
+            margin: 20px auto;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .product-content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+
+        .product-image-section {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+            background-color: #fafafa;
+            border-radius: 8px;
+            margin-right: 20px;
+        }
+
+        .main-image {
+            width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .thumbnail-container {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .thumbnail {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .thumbnail.active, .thumbnail:hover {
+            border-color: #2979ff;
+        }
+
+        .product-info {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+        }
+
+        .product-title {
+            font-size: 24px;
+            margin: 0 0 10px;
+            color: #1f2235;
+        }
+
+        .product-brand {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .product-price {
+            font-size: 28px;
+            color: #2979ff;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+            min-width: 150px;
+        }
+
+        .info-value {
+            color: #333;
+            flex: 1;
+        }
+
+        .stock-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .in-stock {
+            background-color: #e6f7e6;
+            color: #2e7d32;
+        }
+
+        .low-stock {
+            background-color: #fff8e1;
+            color: #f57f17;
+        }
+
+        .out-of-stock {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .product-description {
+            margin: 20px 0;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2979ff;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #1c54b2;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #2979ff;
+            color: #2979ff;
+            margin-left: 10px;
+        }
+
+        .btn-outline:hover {
+            background: #f0f7ff;
+        }
+
+        /* PDF Download Button Styles */
+        .pdf-download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        .pdf-download-btn:hover {
+            background-color: #c0392b;
+            text-decoration: none;
+        }
+
+        .pdf-download-btn i {
+            font-size: 1.2em;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin: 20px 0 10px;
+            color: #2979ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link i {
+            margin-right: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .product-content {
+                flex-direction: column;
+            }
+
+            .product-image-section {
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+
+            .info-label {
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('product_page') }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Products
+        </a>
+        
+        <div class="product-content">
+            <div class="product-image-section">
+                <img id="mainImage" src="{{ product.image_urls[0] if product.image_urls else url_for('static', filename='images/default-product.jpg') }}" 
+                     alt="{{ product.name }}" class="main-image" 
+                     onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default-product.jpg') }}';">
+                
+                {% if product.image_urls|length > 1 %}
+                <div class="thumbnail-container">
+                    {% for img_url in product.image_urls %}
+                    <img src="{{ img_url }}" 
+                         alt="Thumbnail {{ loop.index }}" 
+                         class="thumbnail {% if loop.first %}active{% endif %}"
+                         onclick="changeMainImage(this, '{{ img_url }}')"
+                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default-product.jpg') }}';">
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="product-info">
+                <h1 class="product-title">{{ product.name }}</h1>
+                <div class="product-brand">{{ product.brand }}</div>
+                
+                <div class="product-price">
+                    ${{ "%.2f"|format(product.price) }}
+                </div>
+                
+                <div class="info-box">
+                    <div class="info-row">
+                        <span class="info-label">Part Number:</span>
+                        <span class="info-value">{{ product.part_number or 'N/A' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Availability:</span>
+                        <span class="info-value">
+                            {% if product.quantity > 5 %}
+                                <span class="stock-status in-stock">In Stock ({{ product.quantity }})</span>
+                            {% elif product.quantity > 0 %}
+                                <span class="stock-status low-stock">Low Stock ({{ product.quantity }} left)</span>
+                            {% else %}
+                                <span class="stock-status out-of-stock">Out of Stock</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Category:</span>
+                        <span class="info-value">{{ product.category or 'N/A' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Condition:</span>
+                        <span class="info-value">{{ product.condition or 'N/A' }}</span>
+                    </div>
+                    {% if product.packaging_status and product.packaging_status != 'N/A' %}
+                    <div class="info-row">
+                        <span class="info-label">Packaging:</span>
+                        <span class="info-value">{{ product.packaging_status }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="product-description">
+                    <h3>Description</h3>
+                    <p>{{ product.description or 'No description available.' }}</p>
+                </div>
+                
+                <!-- Product actions removed as per request -->
+                
+                {% if product.additional_info %}
+                <div class="additional-info" style="margin-top: 20px;">
+                    <h3>Additional Information</h3>
+                    <div class="info-box">
+                        {% for key, value in product.additional_info.items() %}
+                        <div class="info-row">
+                            <span class="info-label">{{ key|replace('_', ' ')|title }}:</span>
+                            <span class="info-value">{{ value or 'N/A' }}</span>
+                        </div>
+                        {% endfor %}
+                        {% if product.additional_info.get('PDF Available') == 'Yes' %}
+                        <div class="info-row">
+                            <span class="info-label">Document:</span>
+                            <span class="info-value">
+                                <a href="{{ url_for('download_pdf', product_id=product.id) }}" class="pdf-download-btn">
+                                    <i class="fas fa-file-pdf"></i> Download Product PDF
+                                </a>
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Enquire Button -->
+                <div class="product-actions" style="margin: 30px 0; text-align: center;">
+                    <button class="btn" style="background-color: #e74c3c; color: white; padding: 12px 24px; font-size: 16px; border-radius: 4px; border: none; cursor: pointer;">
+                        <i class="fas fa-envelope"></i> Enquire About This Product
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        function changeMainImage(thumbnail, newSrc) {
+            // Update main image
+            const mainImage = document.getElementById('mainImage');
+            mainImage.src = newSrc;
+            
+            // Update active thumbnail
+            document.querySelectorAll('.thumbnail').forEach(thumb => {
+                thumb.classList.remove('active');
+            });
+            thumbnail.classList.add('active');
+            
+            // Smooth transition
+            mainImage.style.opacity = '0.5';
+            setTimeout(() => {
+                mainImage.style.opacity = '1';
+            }, 100);
+        }
+    </script>
+</body>
+</html>
